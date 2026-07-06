@@ -4,12 +4,13 @@ from src.holding_risk import build_holding_risk
 
 
 def _prices(symbol: str, latest: float) -> list[dict]:
+    start = pd.Timestamp("2024-01-01")
     rows = []
     for day in range(220):
         close = 20.0
         if day == 219:
             close = latest
-        rows.append({"date": f"2024-01-{(day % 28) + 1:02d}", "symbol": symbol, "close": close, "amount": 1000.0})
+        rows.append({"date": (start + pd.Timedelta(days=day)).strftime("%Y-%m-%d"), "symbol": symbol, "close": close, "amount": 1000.0})
     return rows
 
 

@@ -74,10 +74,12 @@ def run_data_quality_checks(
             continue
 
         last_price_date = stock["date"].max()
+        first_price_date = stock["date"].min()
         history_days = int(stock["date"].nunique())
         avg_amount_20d = float(stock["amount"].tail(20).mean())
         latest_close = float(stock["close"].iloc[-1])
-        missing_days = len(global_dates.difference(set(stock["date"].unique())))
+        comparable_dates = {date for date in global_dates if first_price_date <= date <= last_price_date}
+        missing_days = len(comparable_dates.difference(set(stock["date"].unique())))
 
         if pd.notna(latest_cache_date) and last_price_date < latest_cache_date:
             reasons.append("latest date too old")

@@ -57,3 +57,28 @@ def test_data_quality_excludes_low_amount_short_history_and_bad_close() -> None:
     assert "low 20-day average amount" in excluded.loc["600519", "exclude_reason"]
     assert "short history" in excluded.loc["000001", "exclude_reason"]
     assert "latest close <= 0" in excluded.loc["300750", "exclude_reason"]
+
+
+def test_data_quality_does_not_count_pre_listing_dates_as_missing() -> None:
+    universe = pd.DataFrame(
+        [
+            {"symbol": "600519", "name": "贵州茅台", "industry": "食品饮料"},
+            {"symbol": "300750", "name": "宁德时代", "industry": "电力设备"},
+        ]
+    )
+    prices = pd.DataFrame(
+        [
+            {"date": "2024-01-01", "symbol": "600519", "close": 10.0, "amount": 200.0},
+            {"date": "2024-01-02", "symbol": "600519", "close": 11.0, "amount": 200.0},
+            {"date": "2024-01-03", "symbol": "600519", "close": 12.0, "amount": 200.0},
+            {"date": "2024-01-02", "symbol": "300750", "close": 20.0, "amount": 200.0},
+            {"date": "2024-01-03", "symbol": "300750", "close": 21.0, "amount": 200.0},
+            {"date": "2024-01-04", "symbol": "300750", "close": 22.0, "amount": 200.0},
+        ]
+    )
+
+    config = _config()
+    config["max_missing_days"] = 0
+    result = run_data_quality_checks(prices, universe, config)
+
+    assert "300750" not in set(result.excluded["symbol"])

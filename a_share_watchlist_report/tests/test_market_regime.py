@@ -4,6 +4,7 @@ from src.market_regime import calculate_market_regime
 
 
 def _index_rows(index_name: str, latest: float, old: float, ma_base: float) -> list[dict]:
+    start = pd.Timestamp("2024-01-01")
     rows = []
     for day in range(220):
         close = ma_base
@@ -13,7 +14,7 @@ def _index_rows(index_name: str, latest: float, old: float, ma_base: float) -> l
             close = latest
         rows.append(
             {
-                "date": f"2024-01-{(day % 28) + 1:02d}",
+                "date": (start + pd.Timedelta(days=day)).strftime("%Y-%m-%d"),
                 "index_name": index_name,
                 "index_code": index_name,
                 "close": close,

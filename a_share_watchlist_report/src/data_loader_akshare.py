@@ -40,13 +40,28 @@ def _normalize_index_frame(frame: pd.DataFrame, index_code: str, index_name: str
     return normalized[INDEX_PRICE_COLUMNS].sort_values(["index_name", "date"]).reset_index(drop=True)
 
 
+def _prefixed_index_symbol(index_code: str) -> str:
+    code = str(index_code).strip()
+    if code.startswith(("sh", "sz")):
+        return code
+    if code.startswith("399"):
+        return f"sz{code}"
+    return f"sh{code}"
+
+
+def _prefixed_stock_symbol(symbol: str) -> str:
+    code = str(symbol).strip().zfill(6)
+    if code.startswith(("0", "3")):
+        return f"sz{code}"
+    return f"sh{code}"
+
+
 def fetch_stock_daily(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     """Fetch one A-share stock daily history through AKShare."""
     if ak is None:
         raise RuntimeError("AKShare is not installed. Install requirements.txt before running the report.")
-    raw = ak.stock_zh_a_hist(
-        symbol=str(symbol).zfill(6),
-        period="daily",
+    raw = ak.stock_zh_a_daily(
+        symbol=_prefixed_stock_symbol(symbol),
         start_date=start_date,
         end_date=end_date,
         adjust="qfq",
@@ -59,17 +74,13 @@ def fetch_index_daily(index_code: str, index_name: str, start_date: str, end_dat
     if ak is None:
         raise RuntimeError("AKShare is not installed. Install requirements.txt before running the report.")
     try:
-        raw = ak.index_zh_a_hist(
-            symbol=str(index_code),
-            period="daily",
-            start_date=start_date,
-            end_date=end_date,
-        )
-    except TypeError:
-        raw = ak.index_zh_a_hist(symbol=str(index_code), period="daily", start_date=start_date, end_date=end_date)
+        raw = ak.stock_zh_index_daily(symbol=_prefixed_index_symbol(index_code))
     except Exception as exc:
         raise RuntimeError(f"AKShare index fetch failed for {index_name}({index_code}): {exc}") from exc
-    return _normalize_index_frame(raw, index_code, index_name)
+    normalized = _normalize_index_frame(raw, index_code, index_name)
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    return normalized.loc[(normalized["date"] >= start) & (normalized["date"] <= end)].reset_index(drop=True)
 
 
 def build_price_cache(universe: pd.DataFrame, config: dict, output_path: str | Path) -> pd.DataFrame:
