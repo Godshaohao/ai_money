@@ -31,6 +31,10 @@ def test_ranking_excludes_below_ma200_and_respects_top_n() -> None:
 
     assert len(watchlist) == 1
     assert watchlist.iloc[0]["symbol"] == "600519"
-    assert watchlist.iloc[0]["reason"]
+    reason = watchlist.iloc[0]["reason"]
+    assert "12M 动量" in reason
+    assert "6M 动量" in reason
+    assert "60 日回撤" in reason
+    assert "20 日平均成交额" in reason
     forbidden = {"BUY", "SELL", "target_price", "expected_return"}
     assert forbidden.isdisjoint(set(watchlist.columns))

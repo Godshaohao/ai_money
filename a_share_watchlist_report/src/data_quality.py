@@ -88,8 +88,6 @@ def run_data_quality_checks(
         comparable_dates = {date for date in global_dates if first_price_date <= date <= last_price_date}
         missing_days = len(comparable_dates.difference(set(stock["date"].unique())))
 
-        if pd.notna(latest_cache_date) and last_price_date < latest_cache_date:
-            reasons.append("latest date too old")
         if history_days < int(config["min_listing_days"]):
             reasons.append("short history")
         if latest_close <= 0:

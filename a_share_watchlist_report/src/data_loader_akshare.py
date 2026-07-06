@@ -49,19 +49,13 @@ def _prefixed_index_symbol(index_code: str) -> str:
     return f"sh{code}"
 
 
-def _prefixed_stock_symbol(symbol: str) -> str:
-    code = str(symbol).strip().zfill(6)
-    if code.startswith(("0", "3")):
-        return f"sz{code}"
-    return f"sh{code}"
-
-
 def fetch_stock_daily(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     """Fetch one A-share stock daily history through AKShare."""
     if ak is None:
         raise RuntimeError("AKShare is not installed. Install requirements.txt before running the report.")
-    raw = ak.stock_zh_a_daily(
-        symbol=_prefixed_stock_symbol(symbol),
+    raw = ak.stock_zh_a_hist(
+        symbol=str(symbol).strip().zfill(6),
+        period="daily",
         start_date=start_date,
         end_date=end_date,
         adjust="qfq",

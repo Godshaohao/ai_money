@@ -36,6 +36,22 @@ def _max_drawdown(group: pd.DataFrame, days: int) -> float:
     return latest / peak - 1 if peak > 0 else np.nan
 
 
+def _format_percent(value: float) -> str:
+    if pd.isna(value):
+        return "N/A"
+    return f"{value:.2%}"
+
+
+def _format_amount(value: float) -> str:
+    if pd.isna(value):
+        return "N/A"
+    if abs(value) >= 100_000_000:
+        return f"{value / 100_000_000:.2f} 亿"
+    if abs(value) >= 10_000:
+        return f"{value / 10_000:.2f} 万"
+    return f"{value:.2f}"
+
+
 def build_watchlist(
     prices: pd.DataFrame,
     eligible: pd.DataFrame,
@@ -78,7 +94,14 @@ def build_watchlist(
     ranked = ranked.sort_values(["momentum_12m", "momentum_6m"], ascending=[False, False], na_position="last")
     ranked = ranked.head(int(config["top_n_watchlist"])).reset_index(drop=True)
     ranked["rank"] = ranked.index + 1
-    ranked["reason"] = ranked["rank"].map(
-        lambda rank: f"进入观察：价格在 MA200 上方，12M 动量排名第 {rank}，20 日平均成交额达标。"
+    ranked["reason"] = ranked.apply(
+        lambda row: (
+            "进入观察：价格在 MA200 上方，"
+            f"12M 动量 {_format_percent(row['momentum_12m'])}，"
+            f"6M 动量 {_format_percent(row['momentum_6m'])}，"
+            f"60 日回撤 {_format_percent(row['max_drawdown_60d'])}，"
+            f"20 日平均成交额 {_format_amount(row['avg_amount_20d'])}。"
+        ),
+        axis=1,
     )
     return ranked[WATCHLIST_COLUMNS]
