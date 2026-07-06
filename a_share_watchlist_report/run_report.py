@@ -10,7 +10,7 @@ from src.data_loader_akshare import build_index_price_cache, build_price_cache
 from src.data_quality import DataQualityResult, run_data_quality_checks, write_data_quality_status
 from src.market_regime import calculate_market_regime
 from src.stock_filters import build_eligible_stocks
-from src.stock_ranking import build_watchlist
+from src.stock_ranking import WATCHLIST_COLUMNS, build_watchlist
 from src.holding_risk import build_holding_risk
 from src.report_html import render_report
 
@@ -40,6 +40,7 @@ def _render_data_issue(status: DataQualityResult, excluded: pd.DataFrame | None 
     _empty_frame(["index_name", "close", "ma200", "above_ma200", "return_20d", "status"]).to_csv(
         OUTPUT_DIR / "market_regime.csv", index=False
     )
+    _empty_frame(WATCHLIST_COLUMNS).to_csv(OUTPUT_DIR / "watchlist.csv", index=False)
     _empty_frame(
         [
             "symbol",
@@ -83,6 +84,7 @@ def main() -> int:
         ))
         _render_data_issue(status)
         print("Generated output/report.html")
+        print("Generated output/watchlist.csv")
         print("Generated output/excluded_stocks.csv")
         print("Generated output/holding_risk.csv")
         print("Generated output/market_regime.csv")
@@ -96,6 +98,7 @@ def main() -> int:
     if not data_quality.ok:
         _render_data_issue(data_quality, data_quality.excluded)
         print("Generated output/report.html")
+        print("Generated output/watchlist.csv")
         print("Generated output/excluded_stocks.csv")
         print("Generated output/holding_risk.csv")
         print("Generated output/market_regime.csv")

@@ -82,3 +82,24 @@ def test_data_quality_does_not_count_pre_listing_dates_as_missing() -> None:
     result = run_data_quality_checks(prices, universe, config)
 
     assert "300750" not in set(result.excluded["symbol"])
+
+
+def test_data_quality_excludes_st_name_from_universe() -> None:
+    universe = pd.DataFrame(
+        [
+            {"symbol": "600519", "name": "ST茅台", "industry": "食品饮料"},
+        ]
+    )
+    prices = pd.DataFrame(
+        [
+            {"date": "2024-01-01", "symbol": "600519", "close": 10.0, "amount": 200.0},
+            {"date": "2024-01-02", "symbol": "600519", "close": 11.0, "amount": 200.0},
+            {"date": "2024-01-03", "symbol": "600519", "close": 12.0, "amount": 200.0},
+        ]
+    )
+
+    result = run_data_quality_checks(prices, universe, _config())
+
+    excluded = result.excluded.set_index("symbol")
+    assert "600519" in excluded.index
+    assert "ST name" in excluded.loc["600519", "exclude_reason"]

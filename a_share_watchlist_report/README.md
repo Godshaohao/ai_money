@@ -50,6 +50,14 @@ python run_report.py
 
 Open `output/report.html` after the command finishes.
 
+## Local Smoke Check
+
+```bash
+python -m compileall .
+pytest
+python run_report.py
+```
+
 ## How To Read The Report
 
 - `Market regime` summarizes whether configured indices support more risk exposure.

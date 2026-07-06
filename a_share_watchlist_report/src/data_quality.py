@@ -29,6 +29,11 @@ def _empty_excluded() -> pd.DataFrame:
     return pd.DataFrame(columns=EXCLUDED_COLUMNS)
 
 
+def _has_st_name(name: object) -> bool:
+    normalized = str(name).strip().upper().replace(" ", "")
+    return normalized.startswith("ST") or normalized.startswith("*ST")
+
+
 def run_data_quality_checks(
     prices: pd.DataFrame,
     universe: pd.DataFrame,
@@ -57,6 +62,8 @@ def run_data_quality_checks(
         symbol = str(row["symbol"]).zfill(6)
         stock = normalized.loc[normalized["symbol"] == symbol].sort_values("date")
         reasons: list[str] = []
+        if _has_st_name(row["name"]):
+            reasons.append("ST name")
 
         if stock.empty:
             reasons.append("no price data")
