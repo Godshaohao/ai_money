@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A-share Watchlist Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18212f;
+      --muted: #647085;
+      --line: #d8dee8;
+      --panel: #f7f9fc;
+      --accent: #176b5d;
+      --warn: #9a4c00;
+      --bad: #a73535;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #ffffff;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin-top: 28px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+    .meta {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      padding: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .metric {
+      min-height: 76px;
+      padding: 10px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .metric strong {
+      font-size: 20px;
+      overflow-wrap: anywhere;
+    }
+    .warning {
+      margin-top: 12px;
+      color: var(--warn);
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      background: var(--panel);
+      font-weight: 600;
+    }
+    .empty {
+      color: var(--muted);
+      padding: 12px 0;
+    }
+    pre {
+      white-space: pre-wrap;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>A-share Watchlist Report</h1>
+    <div class="meta">Generated at {{ generated_at }}</div>
+
+    <section class="summary">
+      <div class="metric"><span>Market regime</span><strong>{{ market_regime }}</strong></div>
+      <div class="metric"><span>Risk exposure review</span><strong>{{ risk_exposure_review }}</strong></div>
+      <div class="metric"><span>Watchlist candidate count</span><strong>{{ watchlist_count }}</strong></div>
+      <div class="metric"><span>Excluded stock count</span><strong>{{ excluded_count }}</strong></div>
+      <div class="metric"><span>Holding risk count</span><strong>{{ holding_risk_count }}</strong></div>
+    </section>
+    <div class="warning">Largest risk warning: {{ largest_risk_warning }}</div>
+
+    <h2>Market Regime Evidence</h2>
+    {% if market_evidence %}
+    <table>
+      <thead><tr><th>Index</th><th>Close</th><th>MA200</th><th>Above MA200</th><th>20D Return</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for row in market_evidence %}
+        <tr><td>{{ row.index_name }}</td><td>{{ row.close }}</td><td>{{ row.ma200 }}</td><td>{{ row.above_ma200 }}</td><td>{{ row.return_20d }}</td><td>{{ row.status }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Market regime: N/A</div>{% endif %}
+
+    <h2>Watchlist Top 20</h2>
+    {% if watchlist %}
+    <table>
+      <thead><tr><th>Rank</th><th>Symbol</th><th>Name</th><th>Industry</th><th>Close</th><th>12M Momentum</th><th>6M Momentum</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for row in watchlist %}
+        <tr><td>{{ row.rank }}</td><td>{{ row.symbol }}</td><td>{{ row.name }}</td><td>{{ row.industry }}</td><td>{{ row.close }}</td><td>{{ row.momentum_12m }}</td><td>{{ row.momentum_6m }}</td><td>{{ row.reason }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Watchlist: N/A</div>{% endif %}
+
+    <h2>Excluded Stocks</h2>
+    {% if excluded %}
+    <table>
+      <thead><tr><th>Symbol</th><th>Name</th><th>Industry</th><th>Reason</th><th>Last Price Date</th><th>Avg Amount 20D</th><th>History Days</th></tr></thead>
+      <tbody>
+        {% for row in excluded %}
+        <tr><td>{{ row.symbol }}</td><td>{{ row.name }}</td><td>{{ row.industry }}</td><td>{{ row.exclude_reason }}</td><td>{{ row.last_price_date }}</td><td>{{ row.avg_amount_20d }}</td><td>{{ row.history_days }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Excluded stocks: N/A</div>{% endif %}
+
+    <h2>Holding Risk Review</h2>
+    {% if holding_risk %}
+    <table>
+      <thead><tr><th>Symbol</th><th>Name</th><th>Shares</th><th>Cost Basis</th><th>Latest Close</th><th>From Cost</th><th>Above MA200</th><th>Action</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for row in holding_risk %}
+        <tr><td>{{ row.symbol }}</td><td>{{ row.name }}</td><td>{{ row.shares }}</td><td>{{ row.cost_basis }}</td><td>{{ row.latest_close }}</td><td>{{ row.drawdown_from_cost }}</td><td>{{ row.above_ma200 }}</td><td>{{ row.risk_action }}</td><td>{{ row.reason }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty">Holding risk: N/A</div>{% endif %}
+
+    <h2>Data Quality Status</h2>
+    <pre>{{ data_quality_status }}</pre>
+  </main>
+</body>
+</html>
