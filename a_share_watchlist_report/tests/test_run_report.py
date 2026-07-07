@@ -5,6 +5,7 @@ import pandas as pd
 
 import run_report
 from src.data.data_cache import write_daily_bar_cache
+from src.data.dragon_tiger import empty_dragon_tiger_frame
 
 
 def _write_inputs(root: Path, holdings_text: str = "symbol,shares,cost_basis\n") -> None:
@@ -77,9 +78,14 @@ def _index_prices(index_name: str = "沪深300", index_code: str = "000300") -> 
     )
 
 
+def _disable_dragon_tiger(monkeypatch) -> None:
+    monkeypatch.setattr(run_report, "fetch_today_dragon_tiger", lambda: empty_dragon_tiger_frame())
+
+
 def test_data_issue_path_writes_empty_watchlist_csv(tmp_path: Path, monkeypatch) -> None:
     root = tmp_path
     _write_inputs(root)
+    _disable_dragon_tiger(monkeypatch)
 
     monkeypatch.setattr(run_report, "ROOT", root)
     monkeypatch.setattr(run_report, "DATA_DIR", root / "data")
@@ -104,6 +110,7 @@ def test_data_issue_path_writes_empty_watchlist_csv(tmp_path: Path, monkeypatch)
         "excluded_stocks.csv",
         "holding_risk.csv",
         "market_regime.csv",
+        "dragon_tiger.csv",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()
@@ -127,6 +134,7 @@ def test_data_issue_path_writes_empty_watchlist_csv(tmp_path: Path, monkeypatch)
 def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> None:
     root = tmp_path
     _write_inputs(root, "symbol,shares,cost_basis\n600519,100,90\n")
+    _disable_dragon_tiger(monkeypatch)
 
     monkeypatch.setattr(run_report, "ROOT", root)
     monkeypatch.setattr(run_report, "DATA_DIR", root / "data")
@@ -163,6 +171,7 @@ def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> 
         "excluded_stocks.csv",
         "holding_risk.csv",
         "market_regime.csv",
+        "dragon_tiger.csv",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()
@@ -190,7 +199,111 @@ def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> 
         "Watchlist Top 20",
         "Excluded Stocks",
         "Holding Risk Review",
+        "Dragon Tiger List",
         "Data Quality Status",
     ]:
         assert label in report_html
     assert "DATA_ISSUE" not in report_html
+
+
+def test_live_fetch_failure_uses_existing_local_cache(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path
+    _write_inputs(root, "symbol,shares,cost_basis\n600519,100,90\n")
+    _disable_dragon_tiger(monkeypatch)
+    data_dir = root / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    _stock_prices().to_parquet(data_dir / "prices.parquet", index=False)
+    _index_prices().to_parquet(data_dir / "index_prices.parquet", index=False)
+
+    monkeypatch.setattr(run_report, "ROOT", root)
+    monkeypatch.setattr(run_report, "DATA_DIR", data_dir)
+    monkeypatch.setattr(run_report, "OUTPUT_DIR", root / "output")
+
+    def fail_live_fetch(
+        universe: pd.DataFrame,
+        config: dict,
+        output_path: str | Path,
+        daily_bar_output_path: str | Path | None = None,
+    ) -> pd.DataFrame:
+        raise RuntimeError("synthetic live fetch failure")
+
+    monkeypatch.setattr(run_report, "build_price_cache", fail_live_fetch)
+
+    assert run_report.main() == 0
+
+    status = json.loads((root / "output" / "data_quality_status.json").read_text(encoding="utf-8"))
+    assert status["ok"] is True
+    assert "using existing local cache" in status["warnings"][0]
+
+    coverage = json.loads((root / "data" / "reports" / "data_coverage_report.json").read_text(encoding="utf-8"))
+    assert coverage["cached_symbols"] == 1
+    assert coverage["missing_symbols"] == []
+    assert (root / "data" / "cache" / "daily_bars.parquet").exists()
+
+    report_html = (root / "output" / "report.html").read_text(encoding="utf-8")
+    assert "DATA_ISSUE" not in report_html
+    assert "Watchlist Top 20" in report_html
+
+
+def test_success_path_adds_dragon_tiger_symbols_to_universe(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path
+    _write_inputs(root)
+
+    monkeypatch.setattr(run_report, "ROOT", root)
+    monkeypatch.setattr(run_report, "DATA_DIR", root / "data")
+    monkeypatch.setattr(run_report, "OUTPUT_DIR", root / "output")
+    monkeypatch.setattr(
+        run_report,
+        "fetch_today_dragon_tiger",
+        lambda: pd.DataFrame(
+            [
+                {
+                    "symbol": "000001",
+                    "name": "平安银行",
+                    "trade_date": "2026-07-07",
+                    "close": 12.34,
+                    "change_pct": 10.0,
+                    "net_buy_amount": 1_000_000.0,
+                    "buy_amount": 2_000_000.0,
+                    "sell_amount": 1_000_000.0,
+                    "deal_amount": 3_000_000.0,
+                    "turnover_rate": 8.8,
+                    "reason": "日涨幅偏离值达7%",
+                    "source": "akshare_eastmoney_lhb",
+                }
+            ]
+        ),
+    )
+
+    seen_symbols: list[str] = []
+
+    def fake_build_price_cache(
+        universe: pd.DataFrame,
+        config: dict,
+        output_path: str | Path,
+        daily_bar_output_path: str | Path | None = None,
+    ) -> pd.DataFrame:
+        seen_symbols.extend(universe["symbol"].astype(str).tolist())
+        prices = pd.concat([_stock_prices("600519"), _stock_prices("000001")], ignore_index=True)
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        prices.to_parquet(output_path, index=False)
+        if daily_bar_output_path is not None:
+            daily_bars = pd.concat([_daily_bars("600519"), _daily_bars("000001")], ignore_index=True)
+            write_daily_bar_cache(daily_bars, daily_bar_output_path)
+        return prices
+
+    def fake_build_index_price_cache(config: dict, output_path: str | Path) -> pd.DataFrame:
+        index_prices = _index_prices()
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        index_prices.to_parquet(output_path, index=False)
+        return index_prices
+
+    monkeypatch.setattr(run_report, "build_price_cache", fake_build_price_cache)
+    monkeypatch.setattr(run_report, "build_index_price_cache", fake_build_index_price_cache)
+
+    assert run_report.main() == 0
+
+    assert seen_symbols == ["600519", "000001"]
+    dragon_tiger = pd.read_csv(root / "output" / "dragon_tiger.csv", dtype={"symbol": "string"})
+    assert dragon_tiger.loc[0, "symbol"] == "000001"
+    assert "平安银行" in (root / "output" / "report.html").read_text(encoding="utf-8")

@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover - exercised in environments without runt
 
 from src.data.data_cache import write_daily_bar_cache
 from src.data.data_normalizer import empty_daily_bar_frame, normalize_stock_hist_frame
+from src.data.eastmoney_client import fetch_stock_hist_eastmoney
 from src.schemas import DAILY_BAR_COLUMNS, INDEX_PRICE_COLUMNS, PRICE_COLUMNS
 
 
@@ -58,13 +59,23 @@ def fetch_stock_daily_bar(
     """Fetch one A-share stock daily history with V1 cache columns."""
     if ak is None:
         raise RuntimeError("AKShare is not installed. Install requirements.txt before running the report.")
-    raw = ak.stock_zh_a_hist(
-        symbol=str(symbol).strip().zfill(6),
-        period="daily",
-        start_date=start_date,
-        end_date=end_date,
-        adjust="qfq",
-    )
+    stock_symbol = str(symbol).strip().zfill(6)
+    try:
+        raw = ak.stock_zh_a_hist(
+            symbol=stock_symbol,
+            period="daily",
+            start_date=start_date,
+            end_date=end_date,
+            adjust="qfq",
+        )
+    except Exception:
+        raw = fetch_stock_hist_eastmoney(
+            symbol=stock_symbol,
+            period="daily",
+            start_date=start_date,
+            end_date=end_date,
+            adjust="qfq",
+        )
     return normalize_stock_hist_frame(raw, symbol, name, industry, adjust="qfq")
 
 

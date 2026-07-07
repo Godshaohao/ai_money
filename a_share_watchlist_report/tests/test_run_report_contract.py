@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import run_report
+from src.data.dragon_tiger import empty_dragon_tiger_frame
 from src.stock_ranking import WATCHLIST_COLUMNS
 
 
@@ -44,6 +45,7 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
     monkeypatch.setattr(run_report, "ROOT", tmp_path)
     monkeypatch.setattr(run_report, "DATA_DIR", tmp_path / "data")
     monkeypatch.setattr(run_report, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(run_report, "fetch_today_dragon_tiger", lambda: empty_dragon_tiger_frame())
 
     def fail_price_fetch(
         universe: pd.DataFrame,
@@ -64,6 +66,7 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
         "excluded_stocks.csv",
         "holding_risk.csv",
         "market_regime.csv",
+        "dragon_tiger.csv",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()

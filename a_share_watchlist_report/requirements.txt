@@ -1,4 +1,5 @@
 akshare
+curl_cffi
 pandas
 numpy
 pyarrow

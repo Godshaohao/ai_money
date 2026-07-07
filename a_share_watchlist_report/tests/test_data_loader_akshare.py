@@ -64,6 +64,47 @@ def test_fetch_stock_daily_uses_raw_six_digit_stock_code(monkeypatch) -> None:
     assert result.iloc[-1]["close"] == 11.0
 
 
+def test_fetch_stock_daily_falls_back_to_same_source_eastmoney_client(monkeypatch) -> None:
+    class FailingAkshare:
+        def stock_zh_a_hist(self, **kwargs):
+            raise ConnectionError("remote disconnected")
+
+    fallback_calls: list[dict] = []
+
+    def fake_fallback(symbol: str, period: str, start_date: str, end_date: str, adjust: str) -> pd.DataFrame:
+        fallback_calls.append(
+            {
+                "symbol": symbol,
+                "period": period,
+                "start_date": start_date,
+                "end_date": end_date,
+                "adjust": adjust,
+            }
+        )
+        return pd.DataFrame(
+            [
+                {"日期": "2024-01-01", "开盘": 1.0, "最高": 1.0, "最低": 1.0, "收盘": 10.0, "成交额": 1000.0},
+            ]
+        )
+
+    monkeypatch.setattr(data_loader_akshare, "ak", FailingAkshare())
+    monkeypatch.setattr(data_loader_akshare, "fetch_stock_hist_eastmoney", fake_fallback)
+
+    result = data_loader_akshare.fetch_stock_daily("600519", "20240101", "20240102")
+
+    assert fallback_calls == [
+        {
+            "symbol": "600519",
+            "period": "daily",
+            "start_date": "20240101",
+            "end_date": "20240102",
+            "adjust": "qfq",
+        }
+    ]
+    assert result.loc[0, "symbol"] == "600519"
+    assert result.loc[0, "close"] == 10.0
+
+
 def test_fetch_stock_daily_does_not_prefix_300_codes(monkeypatch) -> None:
     fake = _FakeAkshare()
     monkeypatch.setattr(data_loader_akshare, "ak", fake)
