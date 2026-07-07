@@ -9,12 +9,14 @@ A local static report generator for a manually maintained A-share watchlist. It 
 - Creates a Top 20 observation watchlist for manual review.
 - Flags current holdings for risk review using only allowed actions: `WATCH`, `HOLD_REVIEW`, `REDUCE_REVIEW`, `DATA_ISSUE`.
 - Writes a static HTML report that opens without a web service.
+- Optionally exposes the latest local report and run history through a local FastAPI backend.
 
 ## What This Tool Does Not Do
 
 - It does not generate trading orders or investment recommendations.
 - It does not output `BUY`, `SELL`, target prices, or expected returns.
-- It does not connect to brokers, accounts, realtime quotes, databases, APIs, schedulers, ML models, or agent systems.
+- It does not connect to brokers, accounts, realtime quotes, schedulers, ML models, or agent systems.
+- Its SQLite database is local run-history storage only, not an account, order, or trading database.
 
 ## Install
 
@@ -49,6 +51,27 @@ python run_report.py
 ```
 
 Open `output/report.html` after the command finishes.
+
+## Local Backend API
+
+V2 adds an optional local FastAPI backend around the existing report generator:
+
+```bash
+python -m uvicorn backend.app:app --reload
+```
+
+Useful local endpoints:
+
+- `GET /health`
+- `GET /api/report/summary`
+- `POST /api/report/run`
+- `GET /api/report/runs`
+
+The backend writes run history to `data/workbench.sqlite`. The original CLI remains supported:
+
+```bash
+python run_report.py
+```
 
 ## Local Smoke Check
 
