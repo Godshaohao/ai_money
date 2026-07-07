@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import run_report
+from src.data.data_cache import write_daily_bar_cache
 
 
 def _write_inputs(root: Path, holdings_text: str = "symbol,shares,cost_basis\n") -> None:
@@ -43,6 +44,27 @@ def _stock_prices(symbol: str = "600519") -> pd.DataFrame:
     )
 
 
+def _daily_bars(symbol: str = "600519") -> pd.DataFrame:
+    prices = _stock_prices(symbol)
+    return pd.DataFrame(
+        {
+            "date": prices["date"],
+            "symbol": prices["symbol"],
+            "name": "贵州茅台",
+            "industry": "食品饮料",
+            "open": prices["close"],
+            "high": prices["close"],
+            "low": prices["close"],
+            "close": prices["close"],
+            "amount": prices["amount"],
+            "volume": [1_000_000.0 for _ in range(len(prices))],
+            "source": "akshare",
+            "adjust": "qfq",
+            "updated_at": "2026-01-01T00:00:00+00:00",
+        }
+    )
+
+
 def _index_prices(index_name: str = "沪深300", index_code: str = "000300") -> pd.DataFrame:
     dates = pd.date_range("2025-01-01", periods=220, freq="D")
     return pd.DataFrame(
@@ -63,7 +85,12 @@ def test_data_issue_path_writes_empty_watchlist_csv(tmp_path: Path, monkeypatch)
     monkeypatch.setattr(run_report, "DATA_DIR", root / "data")
     monkeypatch.setattr(run_report, "OUTPUT_DIR", root / "output")
 
-    def fail_fetch(universe: pd.DataFrame, config: dict, output_path: str | Path) -> pd.DataFrame:
+    def fail_fetch(
+        universe: pd.DataFrame,
+        config: dict,
+        output_path: str | Path,
+        daily_bar_output_path: str | Path | None = None,
+    ) -> pd.DataFrame:
         raise RuntimeError("synthetic fetch failure")
 
     monkeypatch.setattr(run_report, "build_price_cache", fail_fetch)
@@ -88,6 +115,11 @@ def test_data_issue_path_writes_empty_watchlist_csv(tmp_path: Path, monkeypatch)
     status = json.loads((output_dir / "data_quality_status.json").read_text(encoding="utf-8"))
     assert status["ok"] is False
 
+    coverage = json.loads((root / "data" / "reports" / "data_coverage_report.json").read_text(encoding="utf-8"))
+    assert coverage["cached_symbols"] == 0
+    assert coverage["failed_symbols"] == ["600519"]
+    assert (root / "data" / "cache" / "daily_bars.parquet").exists()
+
     report_html = (output_dir / "report.html").read_text(encoding="utf-8")
     assert "DATA_ISSUE" in report_html
 
@@ -100,10 +132,17 @@ def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> 
     monkeypatch.setattr(run_report, "DATA_DIR", root / "data")
     monkeypatch.setattr(run_report, "OUTPUT_DIR", root / "output")
 
-    def fake_build_price_cache(universe: pd.DataFrame, config: dict, output_path: str | Path) -> pd.DataFrame:
+    def fake_build_price_cache(
+        universe: pd.DataFrame,
+        config: dict,
+        output_path: str | Path,
+        daily_bar_output_path: str | Path | None = None,
+    ) -> pd.DataFrame:
         prices = _stock_prices()
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         prices.to_parquet(output_path, index=False)
+        if daily_bar_output_path is not None:
+            write_daily_bar_cache(_daily_bars(), daily_bar_output_path)
         return prices
 
     def fake_build_index_price_cache(config: dict, output_path: str | Path) -> pd.DataFrame:
@@ -130,6 +169,11 @@ def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> 
 
     status = json.loads((output_dir / "data_quality_status.json").read_text(encoding="utf-8"))
     assert status["ok"] is True
+
+    coverage = json.loads((root / "data" / "reports" / "data_coverage_report.json").read_text(encoding="utf-8"))
+    assert coverage["total_symbols"] == 1
+    assert coverage["cached_symbols"] == 1
+    assert (root / "data" / "cache" / "daily_bars.parquet").exists()
 
     watchlist = pd.read_csv(output_dir / "watchlist.csv", dtype={"symbol": "string"})
     assert watchlist.loc[0, "symbol"] == "600519"

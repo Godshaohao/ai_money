@@ -6,6 +6,9 @@ import pandas as pd
 
 from src.config_loader import load_config
 from src.input_validation import load_holdings, load_universe
+from src.data.coverage_report import build_data_coverage_report, write_data_coverage_report
+from src.data.data_cache import read_daily_bar_cache, write_daily_bar_cache
+from src.data.data_normalizer import empty_daily_bar_frame
 from src.data_loader_akshare import build_index_price_cache, build_price_cache
 from src.data_quality import DataQualityResult, run_data_quality_checks, write_data_quality_status
 from src.market_regime import calculate_market_regime
@@ -31,6 +34,31 @@ def _status_dict(result: DataQualityResult) -> dict:
         "warnings": result.warnings,
         "excluded_count": int(len(result.excluded)),
     }
+
+
+def _daily_bar_cache_path() -> Path:
+    return DATA_DIR / "cache" / "daily_bars.parquet"
+
+
+def _data_coverage_report_path() -> Path:
+    return DATA_DIR / "reports" / "data_coverage_report.json"
+
+
+def _write_v1_data_artifacts(
+    universe: pd.DataFrame,
+    daily_bars: pd.DataFrame,
+    failed_symbols: list[str] | None = None,
+) -> None:
+    write_daily_bar_cache(daily_bars, _daily_bar_cache_path())
+    coverage = build_data_coverage_report(universe, daily_bars, failed_symbols)
+    write_data_coverage_report(coverage, _data_coverage_report_path())
+
+
+def _write_empty_v1_data_artifacts_best_effort(universe: pd.DataFrame, status: DataQualityResult) -> None:
+    try:
+        _write_v1_data_artifacts(universe, empty_daily_bar_frame(), universe["symbol"].astype(str).tolist())
+    except Exception as exc:
+        status.warnings.append(f"V1 data artifact write failed: {exc}")
 
 
 def _render_data_issue(status: DataQualityResult, excluded: pd.DataFrame | None = None) -> None:
@@ -76,12 +104,15 @@ def main() -> int:
     holdings = load_holdings(ROOT / "holdings.csv")
 
     try:
-        prices = build_price_cache(universe, config, DATA_DIR / "prices.parquet")
+        prices = build_price_cache(universe, config, DATA_DIR / "prices.parquet", _daily_bar_cache_path())
+        daily_bars = read_daily_bar_cache(_daily_bar_cache_path())
+        _write_v1_data_artifacts(universe, daily_bars)
         index_prices = build_index_price_cache(config, DATA_DIR / "index_prices.parquet")
     except Exception as exc:
         status = DataQualityResult(False, [f"data fetch failed: {exc}"], [], _empty_frame(
             ["symbol", "name", "industry", "exclude_reason", "last_price_date", "avg_amount_20d", "history_days"]
         ))
+        _write_empty_v1_data_artifacts_best_effort(universe, status)
         _render_data_issue(status)
         print("Generated output/report.html")
         print("Generated output/watchlist.csv")

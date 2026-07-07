@@ -92,3 +92,23 @@ def test_fetch_index_daily_uses_sz_prefix_for_399_codes(monkeypatch) -> None:
     data_loader_akshare.fetch_index_daily("399006", "创业板指", "20240101", "20240102")
 
     assert fake.symbols == ["sz399006"]
+
+
+def test_build_price_cache_can_write_daily_bar_cache(tmp_path, monkeypatch) -> None:
+    fake = _FakeAkshare()
+    monkeypatch.setattr(data_loader_akshare, "ak", fake)
+    monkeypatch.setattr(data_loader_akshare.time, "sleep", lambda seconds: None)
+    universe = pd.DataFrame({"symbol": ["600519"], "name": ["贵州茅台"], "industry": ["食品饮料"]})
+
+    prices = data_loader_akshare.build_price_cache(
+        universe,
+        {"start_date": "20240101"},
+        tmp_path / "prices.parquet",
+        tmp_path / "cache" / "daily_bars.parquet",
+    )
+
+    daily_bars = pd.read_parquet(tmp_path / "cache" / "daily_bars.parquet")
+    assert list(prices.columns) == ["date", "symbol", "close", "amount"]
+    assert daily_bars.loc[0, "name"] == "贵州茅台"
+    assert daily_bars.loc[0, "industry"] == "食品饮料"
+    assert daily_bars.loc[0, "open"] == 1.0

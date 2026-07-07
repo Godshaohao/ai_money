@@ -3,6 +3,8 @@ __pycache__/
 .pytest_cache/
 
 data/*.parquet
+data/cache/
+data/reports/
 output/*.csv
 output/*.json
 output/*.html

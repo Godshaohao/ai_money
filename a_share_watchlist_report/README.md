@@ -58,6 +58,15 @@ pytest
 python run_report.py
 ```
 
+## Local Data Artifacts
+
+The run also writes local-only data foundation artifacts:
+
+- `data/cache/daily_bars.parquet`
+- `data/reports/data_coverage_report.json`
+
+These files are generated from the same AKShare pull used by the report and are ignored by git.
+
 ## How To Read The Report
 
 - `Market regime` summarizes whether configured indices support more risk exposure.
