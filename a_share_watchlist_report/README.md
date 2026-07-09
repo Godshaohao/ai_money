@@ -7,14 +7,17 @@ A local static report generator for a manually maintained A-share watchlist. It 
 - Classifies the configured A-share market indices as `RISK_ON`, `NEUTRAL`, or `RISK_OFF`.
 - Excludes stocks with explicit data quality reasons.
 - Creates a Top 20 observation watchlist for manual review.
+- Reviews recent limit-up stocks from AKShare/EastMoney as observation candidates only.
 - Flags current holdings for risk review using only allowed actions: `WATCH`, `HOLD_REVIEW`, `REDUCE_REVIEW`, `DATA_ISSUE`.
 - Writes a static HTML report that opens without a web service.
+- Optionally exposes the latest local report and run history through a local FastAPI backend.
 
 ## What This Tool Does Not Do
 
 - It does not generate trading orders or investment recommendations.
 - It does not output `BUY`, `SELL`, target prices, or expected returns.
-- It does not connect to brokers, accounts, realtime quotes, databases, APIs, schedulers, ML models, or agent systems.
+- It does not connect to brokers, accounts, realtime quotes, schedulers, ML models, or agent systems.
+- Its SQLite database is local run-history storage only, not an account, order, or trading database.
 
 ## Install
 
@@ -50,6 +53,49 @@ python run_report.py
 
 Open `output/report.html` after the command finishes.
 
+## Local Backend API
+
+V2 adds an optional local FastAPI backend around the existing report generator:
+
+```bash
+python -m uvicorn backend.app:app --reload
+```
+
+Useful local endpoints:
+
+- `GET /health`
+- `GET /api/report/summary`
+- `POST /api/report/run`
+- `GET /api/report/runs`
+
+The backend writes run history to `data/workbench.sqlite`. The original CLI remains supported:
+
+```bash
+python run_report.py
+```
+
+## Local Frontend Workbench
+
+V3 adds an optional local React workbench that reads the existing report outputs through the local backend.
+
+Start the backend:
+
+```bash
+python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
+```
+
+Start the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`.
+
+The frontend does not generate trading orders, target prices, automated actions, or investment recommendations.
+
 ## Local Smoke Check
 
 ```bash
@@ -58,10 +104,36 @@ pytest
 python run_report.py
 ```
 
+Frontend smoke check:
+
+```bash
+cd frontend
+npm run test
+npm run build
+```
+
+## Local Data Artifacts
+
+The run also writes local-only data foundation artifacts:
+
+- `data/cache/daily_bars.parquet`
+- `data/reports/data_coverage_report.json`
+
+These files are generated from the same AKShare pull used by the report and are ignored by git.
+
+The report output directory includes event-driven review tables:
+
+- `output/dragon_tiger.csv`
+- `output/limit_up_pool.csv`
+- `output/limit_up_strategy_review.csv`
+
+`limit_up_strategy_review.csv` scores recent limit-up stocks for manual review with labels such as `CORE_REVIEW`, `WATCH_REVIEW`, `RISK_REVIEW`, and `DATA_GAP`. It does not output `BUY`, `SELL`, target prices, position sizes, broker actions, or automated orders.
+
 ## How To Read The Report
 
 - `Market regime` summarizes whether configured indices support more risk exposure.
 - `Watchlist Top 20` lists observation candidates only, not trade orders.
+- `Limit-Up Strategy Review` lists recent limit-up stocks that deserve manual review.
 - `Excluded Stocks` explains why a stock was removed before ranking.
 - `Holding Risk Review` shows holdings that deserve manual review.
 - `Data Quality Status` shows whether the pipeline trusted the current data.

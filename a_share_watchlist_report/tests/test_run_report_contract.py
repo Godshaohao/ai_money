@@ -4,6 +4,9 @@ from pathlib import Path
 import pandas as pd
 
 import run_report
+from src.data.dragon_tiger import empty_dragon_tiger_frame
+from src.data.limit_up_pool import empty_limit_up_pool_frame
+from src.limit_up_strategy import LIMIT_UP_REVIEW_COLUMNS
 from src.stock_ranking import WATCHLIST_COLUMNS
 
 
@@ -44,8 +47,15 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
     monkeypatch.setattr(run_report, "ROOT", tmp_path)
     monkeypatch.setattr(run_report, "DATA_DIR", tmp_path / "data")
     monkeypatch.setattr(run_report, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(run_report, "fetch_today_dragon_tiger", lambda: empty_dragon_tiger_frame())
+    monkeypatch.setattr(run_report, "fetch_recent_limit_up_pool", lambda: empty_limit_up_pool_frame())
 
-    def fail_price_fetch(universe: pd.DataFrame, config: dict, output_path: str | Path) -> pd.DataFrame:
+    def fail_price_fetch(
+        universe: pd.DataFrame,
+        config: dict,
+        output_path: str | Path,
+        daily_bar_output_path: str | Path | None = None,
+    ) -> pd.DataFrame:
         raise RuntimeError("synthetic data fetch failure")
 
     monkeypatch.setattr(run_report, "build_price_cache", fail_price_fetch)
@@ -59,14 +69,25 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
         "excluded_stocks.csv",
         "holding_risk.csv",
         "market_regime.csv",
+        "dragon_tiger.csv",
+        "limit_up_pool.csv",
+        "limit_up_strategy_review.csv",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()
 
     assert (output_dir / "watchlist.csv").read_text(encoding="utf-8") == ",".join(WATCHLIST_COLUMNS) + "\n"
+    assert (output_dir / "limit_up_strategy_review.csv").read_text(encoding="utf-8") == ",".join(
+        LIMIT_UP_REVIEW_COLUMNS
+    ) + "\n"
 
     status = json.loads((output_dir / "data_quality_status.json").read_text(encoding="utf-8"))
     assert status["ok"] is False
+
+    assert (tmp_path / "data" / "cache" / "daily_bars.parquet").exists()
+    coverage = json.loads((tmp_path / "data" / "reports" / "data_coverage_report.json").read_text(encoding="utf-8"))
+    assert coverage["cached_symbols"] == 0
+    assert coverage["failed_symbols"] == ["600519"]
 
     report_html = (output_dir / "report.html").read_text(encoding="utf-8")
     assert "DATA_ISSUE" in report_html

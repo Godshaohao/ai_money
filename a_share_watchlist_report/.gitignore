@@ -3,6 +3,16 @@ __pycache__/
 .pytest_cache/
 
 data/*.parquet
+data/*.sqlite
+data/*.sqlite3
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/cache/
+data/reports/
 output/*.csv
 output/*.json
 output/*.html
+
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
