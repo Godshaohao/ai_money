@@ -8,13 +8,16 @@ import { StatusBadge } from "./components/StatusBadge";
 import type { ReportRun, ReportSummary, ReportTable } from "./types";
 
 const sections = [
-  { key: "market_regime", label: "Market regime" },
-  { key: "watchlist", label: "Watchlist" },
-  { key: "excluded_stocks", label: "Excluded Stocks" },
-  { key: "holding_risk", label: "Holding Risk" },
-  { key: "dragon_tiger", label: "Dragon Tiger" },
-  { key: "limit_up_strategy_review", label: "Limit-Up Review" },
-  { key: "limit_up_pool", label: "Limit-Up Pool" }
+  { key: "market_regime", label: "市场状态" },
+  { key: "watchlist", label: "观察池" },
+  { key: "excluded_stocks", label: "排除股票" },
+  { key: "holding_risk", label: "持仓风险" },
+  { key: "portfolio_review", label: "组合复核" },
+  { key: "dragon_tiger", label: "龙虎榜" },
+  { key: "limit_up_strategy_review", label: "涨停复核" },
+  { key: "limit_up_pool", label: "涨停池" },
+  { key: "operations_check", label: "运行审计" },
+  { key: "artifact_catalog", label: "产物目录" }
 ];
 
 export function App() {
@@ -37,7 +40,7 @@ export function App() {
       setRuns(nextRuns.runs);
       setTables(Object.fromEntries(tableEntries));
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Failed to load workbench");
+      setError(exc instanceof Error ? exc.message : "加载工作台失败");
     }
   }
 
@@ -53,23 +56,23 @@ export function App() {
       setSummary(result.summary);
       await loadWorkbench();
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Failed to refresh report");
+      setError(exc instanceof Error ? exc.message : "刷新报告失败");
     } finally {
       setBusy(false);
     }
   }
 
   const qualityTone = summary?.data_quality.ok ? "ok" : "bad";
-  const qualityLabel = summary === null ? "Loading" : summary.data_quality.ok ? "OK" : "DATA_ISSUE";
+  const qualityLabel = summary === null ? "加载中" : summary.data_quality.ok ? "OK" : "DATA_ISSUE";
   const active = useMemo(() => sections.find((section) => section.key === activeTable) ?? sections[0], [activeTable]);
   const latestRun = runs[0];
 
   return (
     <main className="workbench-shell">
-      <aside className="review-rail" aria-label="Review sections">
+      <aside className="review-rail" aria-label="复核模块">
         <div className="rail-mark">
           <CircleDot size={18} />
-          <span>Daily review</span>
+          <span>每日复盘</span>
         </div>
         <nav>
           {sections.map((section) => (
@@ -89,8 +92,8 @@ export function App() {
       <section className="main-panel">
         <header className="top-bar">
           <div>
-            <p className="eyebrow">Local research surface</p>
-            <h1>A-share Workbench</h1>
+            <p className="eyebrow">本地投研工作台</p>
+            <h1>A 股观察工作台</h1>
           </div>
           <RunToolbar busy={busy} onRefresh={handleRefresh} />
         </header>
@@ -102,18 +105,18 @@ export function App() {
           </div>
         ) : null}
 
-        <section className="context-grid" aria-label="Run context">
+        <section className="context-grid" aria-label="运行上下文">
           <div className="context-card">
             <div className="context-title">
               <Database size={16} />
-              <span>Run context</span>
+              <span>运行上下文</span>
             </div>
-            <p>{latestRun ? `${latestRun.status} · ${latestRun.message ?? "recorded"}` : "No run history yet"}</p>
+            <p>{latestRun ? `${latestRun.status} · ${latestRun.message ?? "已记录"}` : "暂无运行记录"}</p>
           </div>
           <div className="context-card">
             <div className="context-title">
               {summary?.data_quality.ok ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-              <span>Data quality</span>
+              <span>数据质量</span>
             </div>
             <StatusBadge label={qualityLabel} tone={qualityTone} />
           </div>
@@ -124,12 +127,12 @@ export function App() {
         <section className="table-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Generated report table</p>
+              <p className="eyebrow">生成结果表</p>
               <h2>{active.label}</h2>
             </div>
             <div className="panel-count">
               <Table2 size={16} />
-              <span>{tables[active.key]?.row_count ?? 0} rows</span>
+              <span>{tables[active.key]?.row_count ?? 0} 行</span>
             </div>
           </div>
           <DataTable table={tables[active.key] ?? null} />

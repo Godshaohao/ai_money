@@ -9,6 +9,9 @@ A local static report generator for a manually maintained A-share watchlist. It 
 - Creates a Top 20 observation watchlist for manual review.
 - Reviews recent limit-up stocks from AKShare/EastMoney as observation candidates only.
 - Flags current holdings for risk review using only allowed actions: `WATCH`, `HOLD_REVIEW`, `REDUCE_REVIEW`, `DATA_ISSUE`.
+- Adds a portfolio review table with position value, unrealized P/L, portfolio weight, liquidity days, and manual review flags.
+- Adds V5 run audit files for output completeness, data quality state, cache fallback visibility, and review-table availability.
+- Adds V6 run metrics and an artifact catalog for local run inspection.
 - Writes a static HTML report that opens without a web service.
 - Optionally exposes the latest local report and run history through a local FastAPI backend.
 
@@ -126,17 +129,36 @@ The report output directory includes event-driven review tables:
 - `output/dragon_tiger.csv`
 - `output/limit_up_pool.csv`
 - `output/limit_up_strategy_review.csv`
+- `output/portfolio_review.csv`
+- `output/operations_check.csv`
+- `output/run_manifest.json`
+- `output/artifact_catalog.csv`
+- `output/run_metrics.json`
 
 `limit_up_strategy_review.csv` scores recent limit-up stocks for manual review with labels such as `CORE_REVIEW`, `WATCH_REVIEW`, `RISK_REVIEW`, and `DATA_GAP`. It does not output `BUY`, `SELL`, target prices, position sizes, broker actions, or automated orders.
 
-## How To Read The Report
+`portfolio_review.csv` summarizes current holdings for manual review. It uses existing holding risk data to calculate position value, unrealized P/L, portfolio weight, and liquidity days. It does not recommend position sizes or trading actions.
 
-- `Market regime` summarizes whether configured indices support more risk exposure.
-- `Watchlist Top 20` lists observation candidates only, not trade orders.
-- `Limit-Up Strategy Review` lists recent limit-up stocks that deserve manual review.
-- `Excluded Stocks` explains why a stock was removed before ranking.
-- `Holding Risk Review` shows holdings that deserve manual review.
-- `Data Quality Status` shows whether the pipeline trusted the current data.
+`operations_check.csv` is the V5 operations audit table. It records local checks such as output file completeness, data quality, cache fallback, limit-up review availability, and portfolio review availability.
+
+`run_manifest.json` records the run id, timestamps, duration, final status, output inventory, CSV row counts, warnings, and errors.
+
+`run_metrics.json` is the V6 metrics snapshot. It summarizes status, data source state, output file count, missing file count, key row counts, and operations check counts.
+
+`artifact_catalog.csv` is the V6 artifact catalog. It lists local output files, file sizes, CSV row counts, and update times so the frontend and static report can inspect outputs consistently.
+
+## 如何阅读报告
+
+- `市场状态` 汇总配置指数是否支持更高风险敞口。
+- `观察池 Top 20` 只列出观察候选，不是交易指令。
+- `涨停复核` 展示近期涨停股票的人工复核信号。
+- `排除股票` 解释股票在排序前被硬过滤的原因。
+- `持仓风险复核` 展示需要人工复核的持仓。
+- `组合复核` 展示当前持仓的市值、盈亏、权重、流动性和风险标签。
+- `运行审计` 展示本次本地运行是否完整生成核心产物。
+- `指标快照` 展示本次运行的核心机器可读指标。
+- `产物目录` 展示本次运行生成的本地输出文件。
+- `数据质量状态` 展示当前数据是否被流水线信任。
 
 ## Data Source Limitations
 

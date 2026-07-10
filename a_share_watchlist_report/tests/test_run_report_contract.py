@@ -7,6 +7,7 @@ import run_report
 from src.data.dragon_tiger import empty_dragon_tiger_frame
 from src.data.limit_up_pool import empty_limit_up_pool_frame
 from src.limit_up_strategy import LIMIT_UP_REVIEW_COLUMNS
+from src.portfolio_review import PORTFOLIO_REVIEW_COLUMNS
 from src.stock_ranking import WATCHLIST_COLUMNS
 
 
@@ -68,10 +69,15 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
         "watchlist.csv",
         "excluded_stocks.csv",
         "holding_risk.csv",
+        "portfolio_review.csv",
         "market_regime.csv",
         "dragon_tiger.csv",
         "limit_up_pool.csv",
         "limit_up_strategy_review.csv",
+        "operations_check.csv",
+        "run_manifest.json",
+        "artifact_catalog.csv",
+        "run_metrics.json",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()
@@ -80,9 +86,20 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
     assert (output_dir / "limit_up_strategy_review.csv").read_text(encoding="utf-8") == ",".join(
         LIMIT_UP_REVIEW_COLUMNS
     ) + "\n"
+    assert (output_dir / "portfolio_review.csv").read_text(encoding="utf-8") == ",".join(
+        PORTFOLIO_REVIEW_COLUMNS
+    ) + "\n"
 
     status = json.loads((output_dir / "data_quality_status.json").read_text(encoding="utf-8"))
     assert status["ok"] is False
+    manifest = json.loads((output_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["status"] == "DATA_ISSUE"
+    run_metrics = json.loads((output_dir / "run_metrics.json").read_text(encoding="utf-8"))
+    assert run_metrics["status"] == "DATA_ISSUE"
+    operations_check = pd.read_csv(output_dir / "operations_check.csv")
+    assert operations_check.loc[operations_check["check_name"] == "数据质量", "status"].item() == "FAIL"
+    artifact_catalog = pd.read_csv(output_dir / "artifact_catalog.csv")
+    assert "watchlist.csv" in artifact_catalog["filename"].tolist()
 
     assert (tmp_path / "data" / "cache" / "daily_bars.parquet").exists()
     coverage = json.loads((tmp_path / "data" / "reports" / "data_coverage_report.json").read_text(encoding="utf-8"))
@@ -91,3 +108,6 @@ def test_data_fetch_failure_writes_complete_fail_closed_outputs(tmp_path: Path, 
 
     report_html = (output_dir / "report.html").read_text(encoding="utf-8")
     assert "DATA_ISSUE" in report_html
+    assert "运行审计" in report_html
+    assert "指标快照" in report_html
+    assert "产物目录" in report_html

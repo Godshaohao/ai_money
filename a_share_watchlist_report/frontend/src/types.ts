@@ -2,6 +2,7 @@ export type ReportSummary = {
   exists: boolean;
   missing_files: string[];
   data_quality: { ok: boolean; errors?: string[]; warnings?: string[] };
+  run_metrics?: Record<string, number | string | boolean>;
   row_counts: Record<string, number>;
   artifacts: Record<string, string>;
 };

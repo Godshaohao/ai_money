@@ -51,3 +51,42 @@ def test_read_report_table_supports_limit_up_strategy_review(tmp_path: Path) -> 
 
     assert table["exists"] is True
     assert table["rows"][0]["review_label"] == "CORE_REVIEW"
+
+
+def test_read_report_table_supports_portfolio_review(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    pd.DataFrame([{"symbol": "600519", "portfolio_weight": 0.45}]).to_csv(
+        output_dir / "portfolio_review.csv", index=False
+    )
+
+    table = read_report_table(output_dir, "portfolio_review")
+
+    assert table["exists"] is True
+    assert table["rows"][0]["symbol"] == "600519"
+
+
+def test_read_report_table_supports_operations_check(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    pd.DataFrame([{"check_name": "数据质量", "status": "PASS", "severity": "P0", "detail": "通过"}]).to_csv(
+        output_dir / "operations_check.csv", index=False
+    )
+
+    table = read_report_table(output_dir, "operations_check")
+
+    assert table["exists"] is True
+    assert table["rows"][0]["check_name"] == "数据质量"
+
+
+def test_read_report_table_supports_artifact_catalog(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    pd.DataFrame([{"artifact_name": "watchlist", "filename": "watchlist.csv"}]).to_csv(
+        output_dir / "artifact_catalog.csv", index=False
+    )
+
+    table = read_report_table(output_dir, "artifact_catalog")
+
+    assert table["exists"] is True
+    assert table["rows"][0]["filename"] == "watchlist.csv"

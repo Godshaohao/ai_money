@@ -5,7 +5,14 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
-PERCENT_COLUMNS = {"momentum_12m", "momentum_6m", "max_drawdown_60d", "return_20d"}
+PERCENT_COLUMNS = {
+    "momentum_12m",
+    "momentum_6m",
+    "max_drawdown_60d",
+    "return_20d",
+    "unrealized_return",
+    "portfolio_weight",
+}
 AMOUNT_COLUMNS = {
     "amount",
     "avg_amount_20d",
@@ -14,6 +21,9 @@ AMOUNT_COLUMNS = {
     "sell_amount",
     "deal_amount",
     "seal_amount",
+    "position_value",
+    "cost_value",
+    "unrealized_pnl",
 }
 
 
@@ -37,7 +47,7 @@ def _format_cell(column: str, value: object) -> object:
         return f"{float(value):.2f}%"
     if column in AMOUNT_COLUMNS:
         return _format_amount(value)
-    if column in {"close", "ma200", "latest_close", "cost_basis", "drawdown_from_cost"}:
+    if column in {"close", "ma200", "latest_close", "cost_basis", "drawdown_from_cost", "liquidity_days"}:
         return f"{float(value):,.2f}"
     return value
 
@@ -107,6 +117,10 @@ def render_report(
     data_quality_status: dict,
     dragon_tiger: pd.DataFrame | None = None,
     limit_up_strategy_review: pd.DataFrame | None = None,
+    portfolio_review: pd.DataFrame | None = None,
+    operations_check: pd.DataFrame | None = None,
+    run_metrics: dict | None = None,
+    artifact_catalog: pd.DataFrame | None = None,
 ) -> None:
     """Render output/report.html using templates/report.html.j2."""
     template_dir = Path(__file__).resolve().parents[1] / "templates"
@@ -128,6 +142,12 @@ def render_report(
         watchlist_count=0 if watchlist is None else len(watchlist),
         excluded_count=len(excluded),
         holding_risk_count=0 if holding_risk.empty else int((holding_risk["risk_action"] != "WATCH").sum()),
+        portfolio_review_count=0 if portfolio_review is None else len(portfolio_review),
+        operations_check_count=0 if operations_check is None else len(operations_check),
+        artifact_catalog_count=0 if artifact_catalog is None else len(artifact_catalog),
+        portfolio_value=_format_amount(
+            0 if portfolio_review is None or portfolio_review.empty else portfolio_review["position_value"].sum()
+        ),
         dragon_tiger_count=0 if dragon_tiger is None else len(dragon_tiger),
         limit_up_review_count=0 if limit_up_strategy_review is None else len(limit_up_strategy_review),
         latest_dragon_tiger_date=_latest_value(dragon_tiger, "trade_date"),
@@ -137,8 +157,12 @@ def render_report(
         excluded=_records(excluded),
         holding_risk=_records(holding_risk),
         data_quality_status=data_quality_status,
+        run_metrics=run_metrics or {},
         dragon_tiger=_records(dragon_tiger),
         limit_up_strategy_review=_records(limit_up_strategy_review),
+        portfolio_review=_records(portfolio_review),
+        operations_check=_records(operations_check),
+        artifact_catalog=_records(artifact_catalog),
     )
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)

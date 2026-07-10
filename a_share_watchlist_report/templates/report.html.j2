@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>A-share Watchlist Report</title>
+  <title>A 股观察报告</title>
   <style>
     :root {
       color-scheme: light;
@@ -378,62 +378,69 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">A</div><div>A-share Workbench</div></div>
-    <nav class="topnav" aria-label="Dashboard sections">
-      <a href="#overview">Overview</a>
-      <a href="#market">Market</a>
-      <a href="#watchlist">Watchlist</a>
-      <a href="#dragon-tiger">Dragon Tiger</a>
-      <a href="#limit-up-review">Limit-Up</a>
-      <a href="#excluded">Exclusions</a>
-      <a href="#holding-risk">Holdings</a>
-      <a href="#quality">Quality</a>
+    <div class="brand"><div class="brand-mark">A</div><div>A 股观察工作台</div></div>
+    <nav class="topnav" aria-label="报告模块">
+      <a href="#overview">总览</a>
+      <a href="#market">市场</a>
+      <a href="#watchlist">观察池</a>
+      <a href="#dragon-tiger">龙虎榜</a>
+      <a href="#limit-up-review">涨停复核</a>
+      <a href="#excluded">排除项</a>
+      <a href="#holding-risk">持仓</a>
+      <a href="#portfolio-review">组合</a>
+      <a href="#operations">审计</a>
+      <a href="#run-metrics">指标</a>
+      <a href="#artifact-catalog">产物</a>
+      <a href="#quality">质量</a>
     </nav>
-    <div class="run-time">Generated {{ generated_at }}</div>
+    <div class="run-time">生成时间 {{ generated_at }}</div>
   </header>
 
   <main>
-    <section id="overview" class="dashboard-head" aria-label="Dashboard overview">
+    <section id="overview" class="dashboard-head" aria-label="报告总览">
       <div class="title-panel">
-        <p class="eyebrow">Static local research dashboard</p>
-        <h1>A-share Watchlist Report</h1>
-        <p class="title-copy">A compact, review-first dashboard for market regime, watchlist candidates, recent limit-up stocks, today&apos;s Dragon Tiger List, exclusions, holdings, and data quality. Outputs are observation aids only.</p>
+        <p class="eyebrow">本地静态投研面板</p>
+        <h1>A 股观察报告</h1>
+        <p class="title-copy">用于快速复核市场状态、观察池、近期涨停、龙虎榜、排除项、持仓、组合和数据质量。所有输出仅用于观察复核。</p>
       </div>
       <div class="health-panel">
-        <div class="status-row"><span>Data source</span><span class="badge {{ data_source_kind }}">{{ data_source_status }}</span></div>
-        <div class="status-row"><span>Market regime</span><span class="badge {{ market_regime_kind }}">{{ market_regime }}</span></div>
-        <div class="status-row"><span>Risk exposure review</span><span class="badge {{ risk_exposure_kind }}">{{ risk_exposure_review }}</span></div>
+        <div class="status-row"><span>数据源</span><span class="badge {{ data_source_kind }}">{{ data_source_status }}</span></div>
+        <div class="status-row"><span>市场状态</span><span class="badge {{ market_regime_kind }}">{{ market_regime }}</span></div>
+        <div class="status-row"><span>风险敞口复核</span><span class="badge {{ risk_exposure_kind }}">{{ risk_exposure_review }}</span></div>
       </div>
     </section>
 
-    <section class="query-bar" aria-label="Run context">
-      <div class="query-item"><span>Data provider</span><strong>AKShare / EastMoney</strong></div>
-      <div class="query-item"><span>Latest Dragon Tiger date</span><strong>{{ latest_dragon_tiger_date }}</strong></div>
-      <div class="query-item"><span>Universe mode</span><strong>Watchlist + event pools, capped at config</strong></div>
-      <div class="query-item"><span>Output mode</span><strong>Static HTML + CSV</strong></div>
+    <section class="query-bar" aria-label="运行上下文">
+      <div class="query-item"><span>数据提供方</span><strong>AKShare / EastMoney</strong></div>
+      <div class="query-item"><span>最新龙虎榜日期</span><strong>{{ latest_dragon_tiger_date }}</strong></div>
+      <div class="query-item"><span>股票池模式</span><strong>自选池 + 事件池，受 config 限制</strong></div>
+      <div class="query-item"><span>输出模式</span><strong>静态 HTML + CSV</strong></div>
     </section>
 
-    <section class="summary-grid" aria-label="Key metrics">
-      <div class="metric"><span>Watchlist candidates</span><strong>{{ watchlist_count }}</strong><div class="hint">Ranked observations</div></div>
-      <div class="metric"><span>Dragon tiger rows</span><strong>{{ dragon_tiger_count }}</strong><div class="hint">Today&apos;s LHB records</div></div>
-      <div class="metric"><span>Limit-up reviews</span><strong>{{ limit_up_review_count }}</strong><div class="hint">Recent board signals</div></div>
-      <div class="metric"><span>Excluded stocks</span><strong>{{ excluded_count }}</strong><div class="hint">Hard filters</div></div>
-      <div class="metric"><span>Holding risks</span><strong>{{ holding_risk_count }}</strong><div class="hint">Manual review flags</div></div>
-      <div class="metric"><span>Market regime</span><strong>{{ market_regime }}</strong><div class="hint">Index evidence</div></div>
-      <div class="metric"><span>Data source</span><strong>{{ data_source_status }}</strong><div class="hint">Live or cache</div></div>
+    <section class="summary-grid" aria-label="关键指标">
+      <div class="metric"><span>观察池候选</span><strong>{{ watchlist_count }}</strong><div class="hint">排序观察项</div></div>
+      <div class="metric"><span>龙虎榜记录</span><strong>{{ dragon_tiger_count }}</strong><div class="hint">当日 LHB 记录</div></div>
+      <div class="metric"><span>涨停复核</span><strong>{{ limit_up_review_count }}</strong><div class="hint">近期涨停信号</div></div>
+      <div class="metric"><span>排除股票</span><strong>{{ excluded_count }}</strong><div class="hint">硬过滤结果</div></div>
+      <div class="metric"><span>持仓风险</span><strong>{{ holding_risk_count }}</strong><div class="hint">人工复核标记</div></div>
+      <div class="metric"><span>组合市值</span><strong>{{ portfolio_value }}</strong><div class="hint">持仓敞口</div></div>
+      <div class="metric"><span>市场状态</span><strong>{{ market_regime }}</strong><div class="hint">指数证据</div></div>
+      <div class="metric"><span>数据源状态</span><strong>{{ data_source_status }}</strong><div class="hint">实时或缓存</div></div>
+      <div class="metric"><span>运行审计</span><strong>{{ operations_check_count }}</strong><div class="hint">本地检查项</div></div>
+      <div class="metric"><span>产物目录</span><strong>{{ artifact_catalog_count }}</strong><div class="hint">输出文件</div></div>
     </section>
 
     <div class="layout-grid">
       <div class="stack">
         <section id="market" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Market regime</h2><span class="badge {{ market_regime_kind }}">{{ market_regime }}</span></div>
-            <div class="panel-note">Index trend evidence</div>
+            <div class="panel-title"><h2>市场状态</h2><span class="badge {{ market_regime_kind }}">{{ market_regime }}</span></div>
+            <div class="panel-note">指数趋势证据</div>
           </div>
           {% if market_evidence %}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Index</th><th class="num">Close</th><th class="num">MA200</th><th>Above MA200</th><th class="num">20D Return</th><th>Status</th></tr></thead>
+              <thead><tr><th>指数</th><th class="num">收盘价</th><th class="num">MA200</th><th>高于 MA200</th><th class="num">20D 收益</th><th>状态</th></tr></thead>
               <tbody>
                 {% for row in market_evidence %}
                 <tr><td>{{ row.index_name }}</td><td class="num">{{ row.close }}</td><td class="num">{{ row.ma200 }}</td><td>{{ row.above_ma200 }}</td><td class="num">{{ row.return_20d }}</td><td><span class="badge {% if row.status == 'POSITIVE' %}good{% elif row.status == 'NEGATIVE' %}bad{% else %}warn{% endif %}">{{ row.status }}</span></td></tr>
@@ -441,18 +448,18 @@
               </tbody>
             </table>
           </div>
-          {% else %}<div class="empty">Market regime evidence is unavailable.</div>{% endif %}
+          {% else %}<div class="empty">暂无市场状态证据。</div>{% endif %}
         </section>
 
         <section id="watchlist" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Watchlist Top 20</h2><span class="badge warn">Observation</span></div>
-            <div class="panel-note">Observation only; no trade instruction</div>
+            <div class="panel-title"><h2>观察池 Top 20</h2><span class="badge warn">观察</span></div>
+            <div class="panel-note">仅用于观察，不包含交易指令</div>
           </div>
           {% if watchlist %}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Rank</th><th>Symbol</th><th>Name</th><th>Industry</th><th class="num">Close</th><th class="num">12M Momentum</th><th class="num">6M Momentum</th><th>Reason</th></tr></thead>
+              <thead><tr><th>排名</th><th>代码</th><th>名称</th><th>行业</th><th class="num">收盘价</th><th class="num">12M 动量</th><th class="num">6M 动量</th><th>原因</th></tr></thead>
               <tbody>
                 {% for row in watchlist %}
                 <tr><td class="mono">{{ row.rank }}</td><td class="mono">{{ row.symbol }}</td><td>{{ row.name }}</td><td>{{ row.industry }}</td><td class="num">{{ row.close }}</td><td class="num">{{ row.momentum_12m }}</td><td class="num">{{ row.momentum_6m }}</td><td class="reason">{{ row.reason }}</td></tr>
@@ -460,18 +467,18 @@
               </tbody>
             </table>
           </div>
-          {% else %}<div class="empty">No watchlist candidates were generated for the current run.</div>{% endif %}
+          {% else %}<div class="empty">本次运行未生成观察池候选。</div>{% endif %}
         </section>
 
         <section id="dragon-tiger" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Dragon Tiger List</h2><span class="badge warn">{{ dragon_tiger_count }} rows</span></div>
-            <div class="panel-note">Today&apos;s EastMoney LHB stocks added to the observation universe</div>
+            <div class="panel-title"><h2>龙虎榜</h2><span class="badge warn">{{ dragon_tiger_count }} 行</span></div>
+            <div class="panel-note">当日 EastMoney LHB 股票已加入观察池</div>
           </div>
           {% if dragon_tiger %}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Date</th><th>Symbol</th><th>Name</th><th class="num">Close</th><th class="num">Change</th><th class="num">Net Buy</th><th class="num">Buy</th><th class="num">Sell</th><th class="num">Deal</th><th class="num">Turnover</th><th>Reason</th></tr></thead>
+              <thead><tr><th>日期</th><th>代码</th><th>名称</th><th class="num">收盘价</th><th class="num">涨跌幅</th><th class="num">净买入额</th><th class="num">买入额</th><th class="num">卖出额</th><th class="num">成交额</th><th class="num">换手率</th><th>原因</th></tr></thead>
               <tbody>
                 {% for row in dragon_tiger %}
                 <tr><td>{{ row.trade_date }}</td><td class="mono">{{ row.symbol }}</td><td>{{ row.name }}</td><td class="num">{{ row.close }}</td><td class="num">{{ row.change_pct }}</td><td class="num">{{ row.net_buy_amount }}</td><td class="num">{{ row.buy_amount }}</td><td class="num">{{ row.sell_amount }}</td><td class="num">{{ row.deal_amount }}</td><td class="num">{{ row.turnover_rate }}</td><td class="reason">{{ row.reason }}</td></tr>
@@ -479,18 +486,18 @@
               </tbody>
             </table>
           </div>
-          {% else %}<div class="empty">No Dragon Tiger List rows were available for today&apos;s run.</div>{% endif %}
+          {% else %}<div class="empty">本次运行暂无龙虎榜记录。</div>{% endif %}
         </section>
 
         <section id="limit-up-review" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Limit-Up Strategy Review</h2><span class="badge warn">{{ limit_up_review_count }} rows</span></div>
-            <div class="panel-note">Recent limit-up stock review; no trade instruction</div>
+            <div class="panel-title"><h2>涨停复核</h2><span class="badge warn">{{ limit_up_review_count }} 行</span></div>
+            <div class="panel-note">近期涨停股票复核，不包含交易指令</div>
           </div>
           {% if limit_up_strategy_review %}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Date</th><th>Symbol</th><th>Name</th><th class="num">Score</th><th>Label</th><th>Flags</th><th>Market</th><th class="num">Strength</th><th class="num">Streak</th><th class="num">Liquidity</th><th>Reason</th></tr></thead>
+              <thead><tr><th>日期</th><th>代码</th><th>名称</th><th class="num">分数</th><th>标签</th><th>风险标签</th><th>市场环境</th><th class="num">强度</th><th class="num">连板分</th><th class="num">流动性</th><th>原因</th></tr></thead>
               <tbody>
                 {% for row in limit_up_strategy_review %}
                 <tr><td>{{ row.trade_date }}</td><td class="mono">{{ row.symbol }}</td><td>{{ row.name }}</td><td class="num">{{ row.review_score }}</td><td><span class="badge {% if row.review_label == 'CORE_REVIEW' %}good{% elif row.review_label == 'RISK_REVIEW' or row.review_label == 'DATA_GAP' %}bad{% else %}warn{% endif %}">{{ row.review_label }}</span></td><td class="reason">{{ row.red_flags }}</td><td>{{ row.market_context }}</td><td class="num">{{ row.limit_up_strength }}</td><td class="num">{{ row.streak_score }}</td><td class="num">{{ row.liquidity_score }}</td><td class="reason">{{ row.reason }}</td></tr>
@@ -498,30 +505,30 @@
               </tbody>
             </table>
           </div>
-          {% else %}<div class="empty">No recent limit-up review rows were available for the current run.</div>{% endif %}
+          {% else %}<div class="empty">本次运行暂无近期涨停复核记录。</div>{% endif %}
         </section>
       </div>
 
       <aside class="stack">
         <section class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Run health</h2><span class="badge {{ data_source_kind }}">{{ data_source_status }}</span></div>
-            <div class="panel-note">Operational signal</div>
+            <div class="panel-title"><h2>运行健康度</h2><span class="badge {{ data_source_kind }}">{{ data_source_status }}</span></div>
+            <div class="panel-note">运行状态信号</div>
           </div>
           <div class="panel-body">
-            <p class="alert"><strong>Largest risk warning:</strong> {{ largest_risk_warning }}</p>
+            <p class="alert"><strong>最大风险提示：</strong> {{ largest_risk_warning }}</p>
           </div>
         </section>
 
         <section id="excluded" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Excluded Stocks</h2><span class="badge warn">{{ excluded_count }}</span></div>
-            <div class="panel-note">Data quality hard filters</div>
+            <div class="panel-title"><h2>排除股票</h2><span class="badge warn">{{ excluded_count }}</span></div>
+            <div class="panel-note">数据质量硬过滤</div>
           </div>
           {% if excluded %}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Symbol</th><th>Name</th><th>Reason</th><th>Last Date</th><th class="num">Avg Amount</th></tr></thead>
+              <thead><tr><th>代码</th><th>名称</th><th>原因</th><th>最新日期</th><th class="num">平均成交额</th></tr></thead>
               <tbody>
                 {% for row in excluded %}
                 <tr><td class="mono">{{ row.symbol }}</td><td>{{ row.name }}</td><td class="reason">{{ row.exclude_reason }}</td><td>{{ row.last_price_date }}</td><td class="num">{{ row.avg_amount_20d }}</td></tr>
@@ -529,18 +536,18 @@
               </tbody>
             </table>
           </div>
-          {% else %}<div class="empty">No stocks were excluded after data quality checks.</div>{% endif %}
+          {% else %}<div class="empty">数据质量检查后没有股票被排除。</div>{% endif %}
         </section>
 
         <section id="holding-risk" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Holding Risk Review</h2><span class="badge warn">{{ holding_risk_count }}</span></div>
-            <div class="panel-note">Manual review flags</div>
+            <div class="panel-title"><h2>持仓风险复核</h2><span class="badge warn">{{ holding_risk_count }}</span></div>
+            <div class="panel-note">人工复核标记</div>
           </div>
           {% if holding_risk %}
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Symbol</th><th>Name</th><th class="num">Latest</th><th>Action</th><th>Reason</th></tr></thead>
+              <thead><tr><th>代码</th><th>名称</th><th class="num">最新价</th><th>风险动作</th><th>原因</th></tr></thead>
               <tbody>
                 {% for row in holding_risk %}
                 <tr><td class="mono">{{ row.symbol }}</td><td>{{ row.name }}</td><td class="num">{{ row.latest_close }}</td><td><span class="badge {% if row.risk_action == 'WATCH' %}good{% else %}warn{% endif %}">{{ row.risk_action }}</span></td><td class="reason">{{ row.reason }}</td></tr>
@@ -548,15 +555,85 @@
               </tbody>
             </table>
           </div>
-          {% else %}<div class="empty">No holding risk rows were generated for the current run.</div>{% endif %}
+          {% else %}<div class="empty">本次运行未生成持仓风险记录。</div>{% endif %}
+        </section>
+
+        <section id="portfolio-review" class="panel">
+          <div class="panel-head">
+            <div class="panel-title"><h2>组合复核</h2><span class="badge warn">{{ portfolio_review_count }}</span></div>
+            <div class="panel-note">用于人工复核的持仓诊断</div>
+          </div>
+          {% if portfolio_review %}
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>代码</th><th>名称</th><th>行业</th><th class="num">权重</th><th class="num">市值</th><th class="num">盈亏</th><th class="num">收益率</th><th class="num">流动性天数</th><th>风险标签</th><th>复核说明</th></tr></thead>
+              <tbody>
+                {% for row in portfolio_review %}
+                <tr><td class="mono">{{ row.symbol }}</td><td>{{ row.name }}</td><td>{{ row.industry }}</td><td class="num">{{ row.portfolio_weight }}</td><td class="num">{{ row.position_value }}</td><td class="num">{{ row.unrealized_pnl }}</td><td class="num">{{ row.unrealized_return }}</td><td class="num">{{ row.liquidity_days }}</td><td class="reason">{{ row.risk_flags }}</td><td class="reason">{{ row.review_note }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="empty">本次运行未生成组合复核记录。</div>{% endif %}
         </section>
 
         <section id="quality" class="panel">
           <div class="panel-head">
-            <div class="panel-title"><h2>Data Quality Status</h2><span class="badge {{ data_source_kind }}">{{ data_source_status }}</span></div>
-            <div class="panel-note">Machine-readable run status</div>
+            <div class="panel-title"><h2>数据质量状态</h2><span class="badge {{ data_source_kind }}">{{ data_source_status }}</span></div>
+            <div class="panel-note">机器可读的运行状态</div>
           </div>
           <pre>{{ data_quality_status }}</pre>
+        </section>
+
+        <section id="run-metrics" class="panel">
+          <div class="panel-head">
+            <div class="panel-title"><h2>指标快照</h2><span class="badge {{ data_source_kind }}">{{ run_metrics.status | default('N/A') }}</span></div>
+            <div class="panel-note">本次运行的机器可读指标</div>
+          </div>
+          <div class="panel-body">
+            <p class="alert"><strong>数据源状态：</strong>{{ run_metrics.data_source_state | default('N/A') }}</p>
+            <p class="alert"><strong>产物文件：</strong>{{ run_metrics.artifact_file_count | default(0) }} 个，缺失 {{ run_metrics.missing_file_count | default(0) }} 个</p>
+            <p class="alert"><strong>检查结果：</strong>PASS {{ run_metrics.operations_pass_count | default(0) }} / WARN {{ run_metrics.operations_warn_count | default(0) }} / FAIL {{ run_metrics.operations_fail_count | default(0) }}</p>
+            <p class="alert"><strong>关键行数：</strong>观察池 {{ run_metrics.watchlist_count | default(0) }}，涨停复核 {{ run_metrics.limit_up_review_count | default(0) }}，组合复核 {{ run_metrics.portfolio_review_count | default(0) }}</p>
+          </div>
+        </section>
+
+        <section id="operations" class="panel">
+          <div class="panel-head">
+            <div class="panel-title"><h2>运行审计</h2><span class="badge warn">{{ operations_check_count }}</span></div>
+            <div class="panel-note">输出契约与运行健康检查</div>
+          </div>
+          {% if operations_check %}
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>检查项</th><th>状态</th><th>级别</th><th>说明</th></tr></thead>
+              <tbody>
+                {% for row in operations_check %}
+                <tr><td>{{ row.check_name }}</td><td><span class="badge {% if row.status == 'PASS' %}good{% elif row.status == 'FAIL' %}bad{% else %}warn{% endif %}">{{ row.status }}</span></td><td class="mono">{{ row.severity }}</td><td class="reason">{{ row.detail }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="empty">本次运行未生成运行审计记录。</div>{% endif %}
+        </section>
+
+        <section id="artifact-catalog" class="panel">
+          <div class="panel-head">
+            <div class="panel-title"><h2>产物目录</h2><span class="badge warn">{{ artifact_catalog_count }}</span></div>
+            <div class="panel-note">本次运行生成的本地文件</div>
+          </div>
+          {% if artifact_catalog %}
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>产物</th><th>文件</th><th>存在</th><th class="num">大小</th><th class="num">行数</th><th>更新时间</th></tr></thead>
+              <tbody>
+                {% for row in artifact_catalog %}
+                <tr><td>{{ row.artifact_name }}</td><td class="mono">{{ row.filename }}</td><td>{{ row.exists }}</td><td class="num">{{ row.size_bytes }}</td><td class="num">{{ row.row_count }}</td><td>{{ row.updated_at }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}<div class="empty">本次运行未生成产物目录。</div>{% endif %}
         </section>
       </aside>
     </div>

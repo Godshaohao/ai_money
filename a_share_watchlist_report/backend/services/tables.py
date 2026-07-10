@@ -9,10 +9,13 @@ REPORT_TABLES = {
     "watchlist": "watchlist.csv",
     "excluded_stocks": "excluded_stocks.csv",
     "holding_risk": "holding_risk.csv",
+    "portfolio_review": "portfolio_review.csv",
     "market_regime": "market_regime.csv",
     "dragon_tiger": "dragon_tiger.csv",
     "limit_up_pool": "limit_up_pool.csv",
     "limit_up_strategy_review": "limit_up_strategy_review.csv",
+    "operations_check": "operations_check.csv",
+    "artifact_catalog": "artifact_catalog.csv",
 }
 
 

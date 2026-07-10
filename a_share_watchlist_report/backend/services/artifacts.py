@@ -11,7 +11,12 @@ REQUIRED_ARTIFACTS = {
     "watchlist_csv": "watchlist.csv",
     "excluded_stocks_csv": "excluded_stocks.csv",
     "holding_risk_csv": "holding_risk.csv",
+    "portfolio_review_csv": "portfolio_review.csv",
     "market_regime_csv": "market_regime.csv",
+    "operations_check_csv": "operations_check.csv",
+    "run_manifest_json": "run_manifest.json",
+    "artifact_catalog_csv": "artifact_catalog.csv",
+    "run_metrics_json": "run_metrics.json",
     "data_quality_status_json": "data_quality_status.json",
 }
 
@@ -19,7 +24,10 @@ CSV_ROW_COUNT_KEYS = {
     "watchlist": "watchlist.csv",
     "excluded_stocks": "excluded_stocks.csv",
     "holding_risk": "holding_risk.csv",
+    "portfolio_review": "portfolio_review.csv",
     "market_regime": "market_regime.csv",
+    "operations_check": "operations_check.csv",
+    "artifact_catalog": "artifact_catalog.csv",
 }
 
 
@@ -32,6 +40,7 @@ def build_report_summary(output_dir: Path) -> dict[str, Any]:
     ]
     row_counts, read_errors = _count_csv_rows(output_dir)
     data_quality = _read_data_quality(output_dir / "data_quality_status.json")
+    run_metrics = _read_json_object(output_dir / "run_metrics.json", "run_metrics.json")
     if read_errors:
         data_quality = dict(data_quality)
         data_quality["ok"] = False
@@ -42,6 +51,7 @@ def build_report_summary(output_dir: Path) -> dict[str, Any]:
         "exists": not missing_files and not read_errors,
         "missing_files": missing_files,
         "data_quality": data_quality,
+        "run_metrics": run_metrics,
         "row_counts": row_counts,
         "artifacts": {
             name: str(output_dir / filename)
@@ -51,16 +61,19 @@ def build_report_summary(output_dir: Path) -> dict[str, Any]:
 
 
 def _read_data_quality(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"ok": False, "errors": [f"Missing {path.name}"]}
+    return _read_json_object(path, path.name, default={"ok": False, "errors": [f"Missing {path.name}"]})
 
+
+def _read_json_object(path: Path, label: str, default: dict[str, Any] | None = None) -> dict[str, Any]:
+    if not path.exists():
+        return default or {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        return {"ok": False, "errors": [f"Malformed {path.name}: {exc.msg}"]}
+        return {"ok": False, "errors": [f"Malformed {label}: {exc.msg}"]}
 
     if not isinstance(data, dict):
-        return {"ok": False, "errors": [f"Malformed {path.name}: expected object"]}
+        return {"ok": False, "errors": [f"Malformed {label}: expected object"]}
 
     return data
 

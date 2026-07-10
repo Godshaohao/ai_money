@@ -111,10 +111,15 @@ def test_data_issue_path_writes_empty_watchlist_csv(tmp_path: Path, monkeypatch)
         "watchlist.csv",
         "excluded_stocks.csv",
         "holding_risk.csv",
+        "portfolio_review.csv",
         "market_regime.csv",
         "dragon_tiger.csv",
         "limit_up_pool.csv",
         "limit_up_strategy_review.csv",
+        "operations_check.csv",
+        "run_manifest.json",
+        "artifact_catalog.csv",
+        "run_metrics.json",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()
@@ -174,16 +179,24 @@ def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> 
         "watchlist.csv",
         "excluded_stocks.csv",
         "holding_risk.csv",
+        "portfolio_review.csv",
         "market_regime.csv",
         "dragon_tiger.csv",
         "limit_up_pool.csv",
         "limit_up_strategy_review.csv",
+        "operations_check.csv",
+        "run_manifest.json",
+        "artifact_catalog.csv",
+        "run_metrics.json",
         "data_quality_status.json",
     ]:
         assert (output_dir / filename).exists()
 
     status = json.loads((output_dir / "data_quality_status.json").read_text(encoding="utf-8"))
     assert status["ok"] is True
+    run_metrics = json.loads((output_dir / "run_metrics.json").read_text(encoding="utf-8"))
+    assert run_metrics["status"] == "OK"
+    assert run_metrics["watchlist_count"] == 1
 
     coverage = json.loads((root / "data" / "reports" / "data_coverage_report.json").read_text(encoding="utf-8"))
     assert coverage["total_symbols"] == 1
@@ -200,13 +213,17 @@ def test_success_path_writes_observation_report(tmp_path: Path, monkeypatch) -> 
 
     report_html = (output_dir / "report.html").read_text(encoding="utf-8")
     for label in [
-        "Market regime",
-        "Risk exposure review",
-        "Watchlist Top 20",
-        "Excluded Stocks",
-        "Holding Risk Review",
-        "Dragon Tiger List",
-        "Data Quality Status",
+        "市场状态",
+        "风险敞口复核",
+        "观察池 Top 20",
+        "排除股票",
+        "持仓风险复核",
+        "组合复核",
+        "龙虎榜",
+        "数据质量状态",
+        "运行审计",
+        "指标快照",
+        "产物目录",
     ]:
         assert label in report_html
     assert "DATA_ISSUE" not in report_html
@@ -248,7 +265,7 @@ def test_live_fetch_failure_uses_existing_local_cache(tmp_path: Path, monkeypatc
 
     report_html = (root / "output" / "report.html").read_text(encoding="utf-8")
     assert "DATA_ISSUE" not in report_html
-    assert "Watchlist Top 20" in report_html
+    assert "观察池 Top 20" in report_html
 
 
 def test_success_path_adds_dragon_tiger_symbols_to_universe(tmp_path: Path, monkeypatch) -> None:

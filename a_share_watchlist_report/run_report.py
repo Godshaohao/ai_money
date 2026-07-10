@@ -18,12 +18,26 @@ from src.stock_filters import build_eligible_stocks
 from src.stock_ranking import WATCHLIST_COLUMNS, build_watchlist
 from src.holding_risk import build_holding_risk
 from src.limit_up_strategy import build_limit_up_strategy_review, empty_limit_up_strategy_review_frame
+from src.operations import build_artifact_catalog, build_operations_check, build_run_metrics, write_operations_artifacts
+from src.portfolio_review import build_portfolio_review, empty_portfolio_review_frame
 from src.report_html import render_report
 
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "output"
+PRIMARY_OUTPUT_FILES = [
+    "report.html",
+    "watchlist.csv",
+    "excluded_stocks.csv",
+    "holding_risk.csv",
+    "portfolio_review.csv",
+    "market_regime.csv",
+    "dragon_tiger.csv",
+    "limit_up_pool.csv",
+    "limit_up_strategy_review.csv",
+    "data_quality_status.json",
+]
 
 
 def _empty_frame(columns: list[str]) -> pd.DataFrame:
@@ -79,13 +93,34 @@ def _load_existing_local_cache() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFra
     return prices, index_prices, daily_bars
 
 
-def _render_data_issue(status: DataQualityResult, excluded: pd.DataFrame | None = None) -> None:
+def _write_operations_outputs(started_at: datetime, data_quality_status: dict) -> tuple[pd.DataFrame, dict, pd.DataFrame]:
+    finished_at = datetime.now()
+    display_files = [filename for filename in PRIMARY_OUTPUT_FILES if filename != "report.html"]
+    operations_check = build_operations_check(OUTPUT_DIR, display_files, data_quality_status)
+    write_operations_artifacts(OUTPUT_DIR, started_at, finished_at, data_quality_status, PRIMARY_OUTPUT_FILES)
+    artifact_files = PRIMARY_OUTPUT_FILES + [
+        "operations_check.csv",
+        "run_manifest.json",
+        "artifact_catalog.csv",
+        "run_metrics.json",
+    ]
+    run_metrics = build_run_metrics(OUTPUT_DIR, data_quality_status, artifact_files)
+    artifact_catalog = build_artifact_catalog(OUTPUT_DIR, artifact_files)
+    return operations_check, run_metrics, artifact_catalog
+
+
+def _render_data_issue(
+    status: DataQualityResult,
+    excluded: pd.DataFrame | None = None,
+    started_at: datetime | None = None,
+) -> None:
     excluded_frame = excluded if excluded is not None else status.excluded
     write_data_quality_status(status, OUTPUT_DIR / "data_quality_status.json")
     excluded_frame.to_csv(OUTPUT_DIR / "excluded_stocks.csv", index=False)
     empty_dragon_tiger_frame().to_csv(OUTPUT_DIR / "dragon_tiger.csv", index=False)
     empty_limit_up_pool_frame().to_csv(OUTPUT_DIR / "limit_up_pool.csv", index=False)
     empty_limit_up_strategy_review_frame().to_csv(OUTPUT_DIR / "limit_up_strategy_review.csv", index=False)
+    empty_portfolio_review_frame().to_csv(OUTPUT_DIR / "portfolio_review.csv", index=False)
     _empty_frame(["index_name", "close", "ma200", "above_ma200", "return_20d", "status"]).to_csv(
         OUTPUT_DIR / "market_regime.csv", index=False
     )
@@ -105,6 +140,9 @@ def _render_data_issue(status: DataQualityResult, excluded: pd.DataFrame | None 
             "reason",
         ]
     ).to_csv(OUTPUT_DIR / "holding_risk.csv", index=False)
+    operations_check, run_metrics, artifact_catalog = _write_operations_outputs(
+        started_at or datetime.now(), _status_dict(status)
+    )
     render_report(
         OUTPUT_DIR / "report.html",
         "DATA_ISSUE",
@@ -115,10 +153,33 @@ def _render_data_issue(status: DataQualityResult, excluded: pd.DataFrame | None 
         _status_dict(status),
         empty_dragon_tiger_frame(),
         empty_limit_up_strategy_review_frame(),
+        empty_portfolio_review_frame(),
+        operations_check,
+        run_metrics,
+        artifact_catalog,
+    )
+    operations_check, run_metrics, artifact_catalog = _write_operations_outputs(
+        started_at or datetime.now(), _status_dict(status)
+    )
+    render_report(
+        OUTPUT_DIR / "report.html",
+        "DATA_ISSUE",
+        _empty_frame(["index_name", "close", "ma200", "above_ma200", "return_20d", "status"]),
+        None,
+        excluded_frame,
+        _empty_frame(["risk_action", "reason"]),
+        _status_dict(status),
+        empty_dragon_tiger_frame(),
+        empty_limit_up_strategy_review_frame(),
+        empty_portfolio_review_frame(),
+        operations_check,
+        run_metrics,
+        artifact_catalog,
     )
 
 
 def main() -> int:
+    started_at = datetime.now()
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -160,12 +221,17 @@ def main() -> int:
                 ["symbol", "name", "industry", "exclude_reason", "last_price_date", "avg_amount_20d", "history_days"]
             ))
             _write_empty_v1_data_artifacts_best_effort(universe, status)
-            _render_data_issue(status)
+            _render_data_issue(status, started_at=started_at)
             print("Generated output/report.html")
             print("Generated output/watchlist.csv")
             print("Generated output/excluded_stocks.csv")
             print("Generated output/holding_risk.csv")
+            print("Generated output/portfolio_review.csv")
             print("Generated output/market_regime.csv")
+            print("Generated output/operations_check.csv")
+            print("Generated output/run_manifest.json")
+            print("Generated output/artifact_catalog.csv")
+            print("Generated output/run_metrics.json")
             print("Generated output/data_quality_status.json")
             return 0
 
@@ -178,12 +244,17 @@ def main() -> int:
     data_quality.excluded.to_csv(OUTPUT_DIR / "excluded_stocks.csv", index=False)
 
     if not data_quality.ok:
-        _render_data_issue(data_quality, data_quality.excluded)
+        _render_data_issue(data_quality, data_quality.excluded, started_at=started_at)
         print("Generated output/report.html")
         print("Generated output/watchlist.csv")
         print("Generated output/excluded_stocks.csv")
         print("Generated output/holding_risk.csv")
+        print("Generated output/portfolio_review.csv")
         print("Generated output/market_regime.csv")
+        print("Generated output/operations_check.csv")
+        print("Generated output/run_manifest.json")
+        print("Generated output/artifact_catalog.csv")
+        print("Generated output/run_metrics.json")
         print("Generated output/data_quality_status.json")
         return 0
 
@@ -200,6 +271,10 @@ def main() -> int:
     holding_risk = build_holding_risk(holdings, prices, universe, data_quality.excluded, config)
     holding_risk.to_csv(OUTPUT_DIR / "holding_risk.csv", index=False)
 
+    portfolio_review = build_portfolio_review(holding_risk, universe)
+    portfolio_review.to_csv(OUTPUT_DIR / "portfolio_review.csv", index=False)
+
+    operations_check, run_metrics, artifact_catalog = _write_operations_outputs(started_at, _status_dict(data_quality))
     render_report(
         OUTPUT_DIR / "report.html",
         market_regime,
@@ -210,13 +285,38 @@ def main() -> int:
         _status_dict(data_quality),
         dragon_tiger,
         limit_up_strategy_review,
+        portfolio_review,
+        operations_check,
+        run_metrics,
+        artifact_catalog,
+    )
+    operations_check, run_metrics, artifact_catalog = _write_operations_outputs(started_at, _status_dict(data_quality))
+    render_report(
+        OUTPUT_DIR / "report.html",
+        market_regime,
+        market_evidence,
+        watchlist,
+        data_quality.excluded,
+        holding_risk,
+        _status_dict(data_quality),
+        dragon_tiger,
+        limit_up_strategy_review,
+        portfolio_review,
+        operations_check,
+        run_metrics,
+        artifact_catalog,
     )
 
     print("Generated output/report.html")
     print("Generated output/watchlist.csv")
     print("Generated output/excluded_stocks.csv")
     print("Generated output/holding_risk.csv")
+    print("Generated output/portfolio_review.csv")
     print("Generated output/market_regime.csv")
+    print("Generated output/operations_check.csv")
+    print("Generated output/run_manifest.json")
+    print("Generated output/artifact_catalog.csv")
+    print("Generated output/run_metrics.json")
     print("Generated output/data_quality_status.json")
     return 0
 

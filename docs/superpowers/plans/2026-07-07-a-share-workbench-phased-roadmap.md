@@ -21,4 +21,4 @@ Build a personal A-share research workbench in phases while preserving the curre
 
 ## Current Phase
 
-V3 frontend workbench planning.
+V4 portfolio review implemented locally: add a portfolio diagnostics table while preserving manual review language and the P0 static report contract.
