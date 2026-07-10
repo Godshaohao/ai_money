@@ -17,6 +17,7 @@ LIMIT_UP_REVIEW_COLUMNS = [
     "data_quality_score",
     "reason",
 ]
+LIMIT_UP_REQUIRED_FIELDS = ["change_pct", "amount", "break_count", "streak_count"]
 
 
 def empty_limit_up_strategy_review_frame() -> pd.DataFrame:
@@ -39,8 +40,12 @@ def build_limit_up_strategy_review(
         red_flags: list[str] = []
         if _is_st_name(str(row.get("name", ""))):
             red_flags.append("ST_NAME")
-        if symbol not in price_symbols:
+        has_history = symbol in price_symbols
+        has_pool_data_gap = _has_limit_up_pool_data_gap(row)
+        if has_pool_data_gap:
             red_flags.append("DATA_GAP")
+        elif not has_history:
+            red_flags.append("HISTORY_GAP")
 
         change_pct = _number(row.get("change_pct"))
         amount = _number(row.get("amount"))
@@ -60,7 +65,7 @@ def build_limit_up_strategy_review(
         board_quality = max(4, 15 - break_count * 4 + (2 if seal_amount >= 50_000_000 else 0))
         liquidity_score = 10 if amount >= 100_000_000 else 7 if amount >= 50_000_000 else 3
         overnight_risk = 10 if break_count == 0 and seal_amount >= 50_000_000 else 6 if break_count <= 1 else 3
-        data_quality_score = 10 if symbol in price_symbols else 3
+        data_quality_score = 3 if has_pool_data_gap else 7 if not has_history else 10
         review_score = int(
             min(
                 100,
@@ -142,3 +147,11 @@ def _number(value: object) -> float:
 def _is_st_name(name: str) -> bool:
     normalized = name.strip().upper()
     return normalized.startswith("ST") or normalized.startswith("*ST")
+
+
+def _has_limit_up_pool_data_gap(row: dict) -> bool:
+    for field in LIMIT_UP_REQUIRED_FIELDS:
+        value = pd.to_numeric(pd.Series([row.get(field)]), errors="coerce").iloc[0]
+        if pd.isna(value):
+            return True
+    return False

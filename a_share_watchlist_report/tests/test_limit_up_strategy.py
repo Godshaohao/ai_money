@@ -49,7 +49,7 @@ def test_build_limit_up_strategy_review_scores_recent_limit_up_stock() -> None:
     assert "SELL" not in ",".join(review.astype(str).iloc[0].tolist())
 
 
-def test_build_limit_up_strategy_review_marks_missing_price_data_gap() -> None:
+def test_build_limit_up_strategy_review_uses_limit_up_pool_when_price_history_missing() -> None:
     limit_up = pd.DataFrame(
         [
             {
@@ -57,15 +57,46 @@ def test_build_limit_up_strategy_review_marks_missing_price_data_gap() -> None:
                 "name": "宁德时代",
                 "trade_date": "2026-07-08",
                 "close": 250.0,
-                "change_pct": 9.5,
-                "amount": 20_000_000,
+                "change_pct": 10.1,
+                "amount": 200_000_000,
+                "turnover_rate": 0.5,
+                "seal_amount": 80_000_000,
+                "first_limit_time": "",
+                "last_limit_time": "",
+                "break_count": 0,
+                "limit_up_stats": "2/2",
+                "streak_count": 2,
+                "industry": "电力设备",
+                "source": "test",
+            }
+        ]
+    )
+
+    review = build_limit_up_strategy_review(limit_up, pd.DataFrame(columns=["date", "symbol", "close", "amount"]))
+
+    assert review.loc[0, "review_label"] == "WATCH_REVIEW"
+    assert review.loc[0, "review_score"] > 60
+    assert "HISTORY_GAP" in review.loc[0, "red_flags"]
+    assert "DATA_GAP" not in review.loc[0, "red_flags"]
+
+
+def test_build_limit_up_strategy_review_marks_missing_limit_up_pool_fields_as_data_gap() -> None:
+    limit_up = pd.DataFrame(
+        [
+            {
+                "symbol": "300750",
+                "name": "宁德时代",
+                "trade_date": "2026-07-08",
+                "close": 250.0,
+                "change_pct": pd.NA,
+                "amount": pd.NA,
                 "turnover_rate": 0.5,
                 "seal_amount": 0,
                 "first_limit_time": "",
                 "last_limit_time": "",
-                "break_count": 2,
+                "break_count": pd.NA,
                 "limit_up_stats": "1/1",
-                "streak_count": 1,
+                "streak_count": pd.NA,
                 "industry": "电力设备",
                 "source": "test",
             }
