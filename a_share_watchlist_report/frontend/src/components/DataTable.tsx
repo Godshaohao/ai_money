@@ -2,6 +2,10 @@ import type { ReportTable } from "../types";
 
 type DataTableProps = {
   table: ReportTable | null;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  onSort?: (column: string) => void;
+  onSelectSymbol?: (symbol: string) => void;
 };
 
 const columnLabels: Record<string, string> = {
@@ -69,7 +73,7 @@ const columnLabels: Record<string, string> = {
   updated_at: "更新时间",
 };
 
-export function DataTable({ table }: DataTableProps) {
+export function DataTable({ table, sortBy = "", sortDir = "asc", onSort, onSelectSymbol }: DataTableProps) {
   if (table === null) {
     return <div className="empty-state">正在加载表格</div>;
   }
@@ -88,13 +92,23 @@ export function DataTable({ table }: DataTableProps) {
         <thead>
           <tr>
             {table.columns.map((column) => (
-              <th key={column}>{columnLabels[column] ?? column}</th>
+              <th key={column}>
+                <button
+                  type="button"
+                  className="sort-button"
+                  onClick={() => onSort?.(column)}
+                  aria-label={`按${columnLabels[column] ?? column}排序`}
+                >
+                  <span>{columnLabels[column] ?? column}</span>
+                  <strong>{sortBy === column ? (sortDir === "asc" ? "↑" : "↓") : ""}</strong>
+                </button>
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {table.rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
+            <tr key={rowIndex} onClick={() => row.symbol ? onSelectSymbol?.(String(row.symbol)) : undefined}>
               {table.columns.map((column) => (
                 <td key={column}>{String(row[column] ?? "")}</td>
               ))}

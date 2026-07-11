@@ -3,6 +3,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from backend.db.schema import initialize_database
+from backend.repositories.sqlite_repo import ReportTableRepository
 from backend.services.tables import read_report_table
 
 
@@ -24,6 +26,48 @@ def test_read_report_table_returns_rows_and_columns(tmp_path: Path) -> None:
     assert table["row_count"] == 2
     assert table["rows"][0]["symbol"] == "600519"
     assert table["rows"][1]["score"] is None
+
+
+def test_read_report_table_prefers_sqlite_snapshot_when_available(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    pd.DataFrame([{"symbol": "CSV_ONLY", "name": "旧文件"}]).to_csv(output_dir / "watchlist.csv", index=False)
+    db_path = tmp_path / "data" / "workbench.sqlite"
+    initialize_database(db_path)
+    ReportTableRepository(db_path).replace_table(
+        "watchlist",
+        columns=["symbol", "name"],
+        rows=[{"symbol": "DB_ONLY", "name": "数据库"}],
+        updated_at="2026-07-11T13:00:00+08:00",
+    )
+
+    table = read_report_table(output_dir, "watchlist", db_path=db_path)
+
+    assert table["exists"] is True
+    assert table["source"] == "sqlite"
+    assert table["rows"][0]["symbol"] == "DB_ONLY"
+
+
+def test_read_report_table_passes_query_options_to_sqlite(tmp_path: Path) -> None:
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    db_path = tmp_path / "data" / "workbench.sqlite"
+    initialize_database(db_path)
+    ReportTableRepository(db_path).replace_table(
+        "watchlist",
+        columns=["symbol", "name", "score"],
+        rows=[
+            {"symbol": "600519", "name": "贵州茅台", "score": "70"},
+            {"symbol": "002115", "name": "三维通信", "score": "89"},
+        ],
+        updated_at="2026-07-11T13:00:00+08:00",
+    )
+
+    table = read_report_table(output_dir, "watchlist", limit=1, offset=0, search="通信", sort_by="score", sort_dir="desc", db_path=db_path)
+
+    assert table["source"] == "sqlite"
+    assert table["filtered_count"] == 1
+    assert table["rows"][0]["symbol"] == "002115"
 
 
 def test_read_report_table_reports_missing_file(tmp_path: Path) -> None:

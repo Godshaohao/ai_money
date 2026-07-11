@@ -4,6 +4,8 @@ from typing import Any
 import pandas as pd
 from pandas.errors import EmptyDataError, ParserError
 
+from backend.repositories.sqlite_repo import ReportTableRepository
+
 
 REPORT_TABLES = {
     "watchlist": "watchlist.csv",
@@ -19,9 +21,30 @@ REPORT_TABLES = {
 }
 
 
-def read_report_table(output_dir: Path, table_name: str, limit: int = 200) -> dict[str, Any]:
+def read_report_table(
+    output_dir: Path,
+    table_name: str,
+    limit: int = 200,
+    offset: int = 0,
+    search: str = "",
+    sort_by: str = "",
+    sort_dir: str = "asc",
+    db_path: Path | None = None,
+) -> dict[str, Any]:
     if table_name not in REPORT_TABLES:
         raise ValueError(f"unknown report table: {table_name}")
+
+    if db_path is not None and Path(db_path).exists():
+        sqlite_table = ReportTableRepository(Path(db_path)).read_table(
+            table_name,
+            limit=limit,
+            offset=offset,
+            search=search,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+        )
+        if sqlite_table["exists"]:
+            return sqlite_table
 
     path = Path(output_dir) / REPORT_TABLES[table_name]
     if not path.exists():
@@ -46,13 +69,39 @@ def read_report_table(output_dir: Path, table_name: str, limit: int = 200) -> di
             "errors": [f"Malformed {path.name}: {exc}"],
         }
 
-    limited = frame.head(limit)
+    filtered = _filter_frame(frame, search)
+    sorted_frame = _sort_frame(filtered, sort_by, sort_dir)
+    limited = sorted_frame.iloc[max(offset, 0) : max(offset, 0) + max(limit, 0)]
     rows = limited.where(pd.notna(limited), None).to_dict(orient="records")
     return {
         "name": table_name,
         "exists": True,
         "columns": list(frame.columns),
         "row_count": int(len(frame)),
+        "filtered_count": int(len(filtered)),
         "rows": rows,
         "errors": [],
+        "source": "csv",
+        "limit": limit,
+        "offset": offset,
     }
+
+
+def _filter_frame(frame: pd.DataFrame, search: str) -> pd.DataFrame:
+    query = search.strip().lower()
+    if not query:
+        return frame
+    mask = frame.astype("string").fillna("").agg(" ".join, axis=1).str.lower().str.contains(query, regex=False)
+    return frame.loc[mask].reset_index(drop=True)
+
+
+def _sort_frame(frame: pd.DataFrame, sort_by: str, sort_dir: str) -> pd.DataFrame:
+    if sort_by not in frame.columns:
+        return frame
+    sorted_values = frame.copy()
+    numeric = pd.to_numeric(sorted_values[sort_by], errors="coerce")
+    if numeric.notna().any():
+        sorted_values["_sort_key"] = numeric
+    else:
+        sorted_values["_sort_key"] = sorted_values[sort_by].astype("string")
+    return sorted_values.sort_values("_sort_key", ascending=sort_dir.lower() != "desc").drop(columns=["_sort_key"])

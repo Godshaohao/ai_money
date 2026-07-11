@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from backend.db.schema import initialize_database
 from backend.routes.health import router as health_router
 from backend.routes.report import router as report_router
+from backend.routes.securities import router as securities_router
 from backend.routes.tables import router as tables_router
 from backend.services.report_runner import resolve_runner
 
@@ -35,6 +36,7 @@ def create_app(
     app.state.ensure_database = lambda: initialize_database(database_path)
     app.include_router(health_router)
     app.include_router(report_router)
+    app.include_router(securities_router)
     app.include_router(tables_router)
     return app
 

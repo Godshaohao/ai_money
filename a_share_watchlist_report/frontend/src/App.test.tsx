@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { App } from "./App";
 
@@ -32,6 +32,18 @@ const watchlistTable = {
   errors: []
 };
 
+const securityDetail = {
+  symbol: "600519",
+  exists: true,
+  name: "贵州茅台",
+  latest_review_label: "WATCH_REVIEW",
+  latest_review_score: "88",
+  risk_flags: "HISTORY_GAP",
+  sections: {
+    watchlist: [{ symbol: "600519", name: "贵州茅台", reason: "12M 动量 10%" }]
+  }
+};
+
 const emptyTable = (name: string) => ({
   name,
   exists: true,
@@ -51,16 +63,20 @@ describe("App", () => {
       "fetch",
       vi.fn((input: string | URL | Request) => {
         const url = String(input);
-        if (url.endsWith("/summary")) {
+        const parsed = new URL(url, "http://test.local");
+        if (parsed.pathname.endsWith("/summary")) {
           return Promise.resolve({ ok: true, json: () => Promise.resolve(summary) });
         }
-        if (url.endsWith("/runs")) {
+        if (parsed.pathname.endsWith("/runs")) {
           return Promise.resolve({ ok: true, json: () => Promise.resolve({ runs: [] }) });
         }
-        if (url.endsWith("/tables/watchlist")) {
+        if (parsed.pathname.endsWith("/tables/watchlist")) {
           return Promise.resolve({ ok: true, json: () => Promise.resolve(watchlistTable) });
         }
-        const name = url.split("/").pop() ?? "unknown";
+        if (parsed.pathname.endsWith("/securities/600519")) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(securityDetail) });
+        }
+        const name = parsed.pathname.split("/").pop() ?? "unknown";
         return Promise.resolve({ ok: true, json: () => Promise.resolve(emptyTable(name)) });
       })
     );
@@ -79,5 +95,8 @@ describe("App", () => {
     expect(screen.getByText("运行审计")).toBeInTheDocument();
     expect(screen.getByText("产物目录")).toBeInTheDocument();
     expect(screen.getByText("1W/0F")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("600519"));
+    await waitFor(() => expect(screen.getByText("个股证据")).toBeInTheDocument());
+    expect(screen.getByText("WATCH_REVIEW")).toBeInTheDocument();
   });
 });

@@ -20,6 +20,29 @@ export type ReportTable = {
   exists: boolean;
   columns: string[];
   row_count: number;
+  filtered_count?: number;
+  limit?: number;
+  offset?: number;
+  source?: string;
+  updated_at?: string;
   rows: Record<string, string | number | boolean | null>[];
   errors: string[];
+};
+
+export type TableQuery = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+};
+
+export type SecurityDetail = {
+  symbol: string;
+  exists: boolean;
+  name: string;
+  latest_review_label: string;
+  latest_review_score: string;
+  risk_flags: string;
+  sections: Record<string, Record<string, string | number | boolean | null>[]>;
 };

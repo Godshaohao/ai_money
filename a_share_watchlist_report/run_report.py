@@ -4,6 +4,7 @@ import json
 
 import pandas as pd
 
+from backend.db.schema import initialize_database
 from src.config_loader import load_config
 from src.input_validation import load_holdings, load_universe
 from src.data.coverage_report import build_data_coverage_report, write_data_coverage_report
@@ -21,6 +22,7 @@ from src.limit_up_strategy import build_limit_up_strategy_review, empty_limit_up
 from src.operations import build_artifact_catalog, build_operations_check, build_run_metrics, write_operations_artifacts
 from src.portfolio_review import build_portfolio_review, empty_portfolio_review_frame
 from src.report_html import render_report
+from src.storage.report_table_store import write_report_tables_to_sqlite
 
 
 ROOT = Path(__file__).resolve().parent
@@ -38,6 +40,18 @@ PRIMARY_OUTPUT_FILES = [
     "limit_up_strategy_review.csv",
     "data_quality_status.json",
 ]
+REPORT_TABLE_FILES = {
+    "watchlist": "watchlist.csv",
+    "excluded_stocks": "excluded_stocks.csv",
+    "holding_risk": "holding_risk.csv",
+    "portfolio_review": "portfolio_review.csv",
+    "market_regime": "market_regime.csv",
+    "dragon_tiger": "dragon_tiger.csv",
+    "limit_up_pool": "limit_up_pool.csv",
+    "limit_up_strategy_review": "limit_up_strategy_review.csv",
+    "operations_check": "operations_check.csv",
+    "artifact_catalog": "artifact_catalog.csv",
+}
 
 
 def _empty_frame(columns: list[str]) -> pd.DataFrame:
@@ -59,6 +73,21 @@ def _daily_bar_cache_path() -> Path:
 
 def _data_coverage_report_path() -> Path:
     return DATA_DIR / "reports" / "data_coverage_report.json"
+
+
+def _workbench_db_path() -> Path:
+    return DATA_DIR / "workbench.sqlite"
+
+
+def _sync_report_tables_to_sqlite() -> list[str]:
+    db_path = _workbench_db_path()
+    initialize_database(db_path)
+    return write_report_tables_to_sqlite(
+        OUTPUT_DIR,
+        db_path,
+        REPORT_TABLE_FILES,
+        datetime.now().isoformat(),
+    )
 
 
 def _write_v1_data_artifacts(
@@ -158,6 +187,7 @@ def _render_data_issue(
         run_metrics,
         artifact_catalog,
     )
+    _sync_report_tables_to_sqlite()
     operations_check, run_metrics, artifact_catalog = _write_operations_outputs(
         started_at or datetime.now(), _status_dict(status)
     )
@@ -176,6 +206,7 @@ def _render_data_issue(
         run_metrics,
         artifact_catalog,
     )
+    _sync_report_tables_to_sqlite()
 
 
 def main() -> int:
@@ -290,6 +321,7 @@ def main() -> int:
         run_metrics,
         artifact_catalog,
     )
+    _sync_report_tables_to_sqlite()
     operations_check, run_metrics, artifact_catalog = _write_operations_outputs(started_at, _status_dict(data_quality))
     render_report(
         OUTPUT_DIR / "report.html",
@@ -306,6 +338,7 @@ def main() -> int:
         run_metrics,
         artifact_catalog,
     )
+    _sync_report_tables_to_sqlite()
 
     print("Generated output/report.html")
     print("Generated output/watchlist.csv")
