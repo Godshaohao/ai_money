@@ -6,9 +6,11 @@ import pytest
 from src.data import limit_up_pool
 from src.data.limit_up_pool import (
     empty_limit_up_pool_frame,
+    fetch_limit_up_pool_for_date,
     fetch_recent_limit_up_pool,
     merge_limit_up_universe,
     normalize_limit_up_pool_frame,
+    parse_eastmoney_limit_up_payload,
 )
 
 
@@ -77,6 +79,94 @@ def test_fetch_recent_limit_up_pool_combines_available_days(monkeypatch) -> None
     assert calls == ["20260707", "20260708"]
     assert len(recent) == 1
     assert recent.loc[0, "symbol"] == "600519"
+
+
+def test_fetch_recent_limit_up_pool_skips_weekends(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_fetch(day: str) -> pd.DataFrame:
+        calls.append(day)
+        return empty_limit_up_pool_frame()
+
+    monkeypatch.setattr(limit_up_pool, "fetch_limit_up_pool_for_date", fake_fetch)
+
+    recent = fetch_recent_limit_up_pool(days=2, today=date(2026, 7, 11))
+
+    assert calls == ["20260709", "20260710"]
+    assert recent.empty
+
+
+def test_parse_eastmoney_limit_up_payload_maps_push2ex_pool() -> None:
+    payload = {
+        "data": {
+            "pool": [
+                {
+                    "c": "002115",
+                    "n": "三维通信",
+                    "p": 12030,
+                    "zdp": 10.03,
+                    "amount": 911000000,
+                    "hs": 13.21,
+                    "fund": 82000000,
+                    "fbt": 92500,
+                    "lbt": 145700,
+                    "zbc": 1,
+                    "zttj": {"days": 3, "ct": 2},
+                    "lbc": 2,
+                    "hybk": "通信设备",
+                }
+            ]
+        }
+    }
+
+    normalized = parse_eastmoney_limit_up_payload(payload, "20260710")
+
+    assert normalized.loc[0, "symbol"] == "002115"
+    assert normalized.loc[0, "name"] == "三维通信"
+    assert normalized.loc[0, "close"] == pytest.approx(12.03)
+    assert normalized.loc[0, "trade_date"] == "2026-07-10"
+    assert normalized.loc[0, "first_limit_time"] == "09:25:00"
+    assert normalized.loc[0, "last_limit_time"] == "14:57:00"
+    assert normalized.loc[0, "limit_up_stats"] == "3天2板"
+    assert normalized.loc[0, "streak_count"] == 2
+    assert normalized.loc[0, "source"] == "eastmoney_push2ex_zt_pool"
+
+
+def test_fetch_limit_up_pool_for_date_falls_back_to_direct_eastmoney(monkeypatch) -> None:
+    fallback = pd.DataFrame(
+        [
+            {
+                "symbol": "002115",
+                "name": "三维通信",
+                "trade_date": "2026-07-10",
+                "close": 12.03,
+                "change_pct": 10.03,
+                "amount": 911000000,
+                "turnover_rate": 13.21,
+                "seal_amount": 82000000,
+                "first_limit_time": "09:25:00",
+                "last_limit_time": "14:57:00",
+                "break_count": 1,
+                "limit_up_stats": "3天2板",
+                "streak_count": 2,
+                "industry": "通信设备",
+                "source": "eastmoney_push2ex_zt_pool",
+            }
+        ]
+    )
+
+    class FakeAk:
+        @staticmethod
+        def stock_zt_pool_em(date: str) -> pd.DataFrame:
+            raise RuntimeError(f"akshare blocked {date}")
+
+    monkeypatch.setattr(limit_up_pool, "ak", FakeAk())
+    monkeypatch.setattr(limit_up_pool, "fetch_limit_up_pool_eastmoney_direct", lambda trade_date: fallback)
+
+    frame = fetch_limit_up_pool_for_date("20260710")
+
+    assert frame.loc[0, "symbol"] == "002115"
+    assert frame.loc[0, "source"] == "eastmoney_push2ex_zt_pool"
 
 
 def test_fetch_recent_limit_up_pool_raises_when_all_dates_fail(monkeypatch) -> None:

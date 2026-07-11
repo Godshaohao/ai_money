@@ -1,11 +1,6 @@
-import time
-
 import pandas as pd
 
-try:
-    from curl_cffi import requests as curl_requests
-except ImportError:  # pragma: no cover - covered by dependency smoke checks
-    curl_requests = None
+from src.data.eastmoney_http import EastMoneyHTTPError, em_get_json
 
 
 class EastMoneyRequestError(RuntimeError):
@@ -68,9 +63,6 @@ def fetch_stock_hist_eastmoney(
     retries: int = 2,
     timeout: int = 15,
 ) -> pd.DataFrame:
-    if curl_requests is None:
-        raise EastMoneyRequestError("curl_cffi is not installed; install requirements.txt before running the report")
-
     symbol = str(symbol).strip().zfill(6)
     adjust_dict = {"qfq": "1", "hfq": "2", "": "0"}
     period_dict = {"daily": "101", "weekly": "102", "monthly": "103"}
@@ -90,15 +82,16 @@ def fetch_stock_hist_eastmoney(
         "end": end_date,
     }
     url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
-    last_error: Exception | None = None
-    for attempt in range(retries + 1):
-        try:
-            response = curl_requests.get(url, params=params, timeout=timeout, impersonate="chrome")
-            response.raise_for_status()
-            return parse_stock_hist_payload(response.json(), symbol)
-        except Exception as exc:  # noqa: BLE001 - convert transport/parser errors into fail-closed message
-            last_error = exc
-            if attempt < retries:
-                time.sleep(0.5)
-
-    raise EastMoneyRequestError(f"EastMoney stock data fetch failed for {symbol}: {last_error}") from last_error
+    try:
+        payload = em_get_json(
+            url,
+            params=params,
+            headers={"Referer": "https://quote.eastmoney.com/"},
+            timeout=timeout,
+            impersonate="chrome",
+        )
+        return parse_stock_hist_payload(payload, symbol)
+    except EastMoneyHTTPError as exc:
+        raise EastMoneyRequestError(f"EastMoney stock data fetch failed for {symbol}: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - convert parser errors into fail-closed message
+        raise EastMoneyRequestError(f"EastMoney stock data fetch failed for {symbol}: {exc}") from exc

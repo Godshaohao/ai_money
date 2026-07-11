@@ -75,6 +75,9 @@ def fetch_today_dragon_tiger(today: str | None = None) -> pd.DataFrame:
     if ak is None:
         raise RuntimeError("AKShare is not installed. Install requirements.txt before running the report.")
     trade_date = today or datetime.today().strftime("%Y%m%d")
+    parsed_trade_date = datetime.strptime(trade_date, "%Y%m%d")
+    if parsed_trade_date.weekday() >= 5:
+        return empty_dragon_tiger_frame()
     raw = ak.stock_lhb_detail_em(start_date=trade_date, end_date=trade_date)
     return normalize_dragon_tiger_frame(raw)
 

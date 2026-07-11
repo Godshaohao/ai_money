@@ -1,6 +1,12 @@
 import pandas as pd
 
-from src.data.dragon_tiger import DRAGON_TIGER_COLUMNS, merge_dragon_tiger_universe, normalize_dragon_tiger_frame
+from src.data import dragon_tiger
+from src.data.dragon_tiger import (
+    DRAGON_TIGER_COLUMNS,
+    fetch_today_dragon_tiger,
+    merge_dragon_tiger_universe,
+    normalize_dragon_tiger_frame,
+)
 
 
 def _raw_lhb() -> pd.DataFrame:
@@ -53,3 +59,16 @@ def test_merge_dragon_tiger_universe_respects_max_size() -> None:
 
     assert merged["symbol"].tolist() == ["600519"]
 
+
+def test_fetch_today_dragon_tiger_returns_empty_on_weekend(monkeypatch) -> None:
+    class FakeAk:
+        @staticmethod
+        def stock_lhb_detail_em(start_date: str, end_date: str) -> pd.DataFrame:
+            raise AssertionError("weekend should not call AKShare")
+
+    monkeypatch.setattr(dragon_tiger, "ak", FakeAk())
+
+    frame = fetch_today_dragon_tiger("20260711")
+
+    assert frame.empty
+    assert list(frame.columns) == DRAGON_TIGER_COLUMNS

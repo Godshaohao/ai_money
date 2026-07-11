@@ -162,7 +162,14 @@ The report output directory includes event-driven review tables:
 
 ## Data Source Limitations
 
-AKShare is the only data source in P0. If AKShare fails or changes its returned schema, the report fails closed and records a data issue instead of producing a false watchlist.
+AKShare remains the first data entry for market data. For EastMoney-backed endpoints that are important to the local workflow, the project also includes direct EastMoney HTTP fallbacks adapted from the Apache-2.0 `simonlin1212/a-stock-data` request pattern: shared session, serial throttling, jitter, bounded retry, and explicit schema normalization.
+
+The current direct fallback scope is intentionally narrow:
+
+- stock daily K-line fallback through EastMoney `push2his`
+- recent limit-up pool fallback through EastMoney `push2ex`
+
+If both AKShare and the direct same-source fallback fail or return incompatible fields, the report fails closed and records a data issue instead of producing a false watchlist.
 
 ## Disclaimer
 
