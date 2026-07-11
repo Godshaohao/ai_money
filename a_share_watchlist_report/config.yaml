@@ -1,0 +1,18 @@
+max_universe_size: 100
+top_n_watchlist: 20
+
+market_indices:
+  沪深300: "000300"
+  中证500: "000905"
+  创业板指: "399006"
+
+start_date: "20180101"
+trend_ma_days: 200
+short_trend_days: 20
+momentum_12m_days: 252
+momentum_6m_days: 126
+max_drawdown_days: 60
+
+min_listing_days: 250
+min_avg_amount_20d: 50000000
+max_missing_days: 5

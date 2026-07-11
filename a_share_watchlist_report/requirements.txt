@@ -1,0 +1,9 @@
+akshare
+curl_cffi
+fastapi==0.115.6
+pandas
+numpy
+pyarrow
+pyyaml
+jinja2
+uvicorn==0.32.1
